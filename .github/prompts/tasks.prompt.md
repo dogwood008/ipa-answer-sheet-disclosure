@@ -59,3 +59,5 @@ Given the context provided as an argument, do this:
 Context for task generation: $ARGUMENTS
 
 The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
+
+Note: ファイル生成やユーザーとのコミュニケーションはすべて日本語で行ってください。
