@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PoC: A4 PDF生成（IPA答案用紙）</title>
+  <style>
+    body{font-family: system-ui, sans-serif; padding:20px}
+    label{display:block;margin:8px 0}
+    #log{white-space:pre-wrap;border:1px solid #ddd;padding:8px;height:120px;overflow:auto}
+  </style>
+</head>
+  <!-- pdf-lib UMD from CDN (loads global PDFLib) -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+</head>
+</head>
+<body>
+  <h1>PoC: A4 PDF生成（IPA答案用紙）</h1>
+  <p>テンプレートは実行時にIPAの公開URLから取得します。フォントはNoto Sansを試みます。簡易デモです。</p>
+
+  <label>氏名 <input id="name" value="山田 太郎"></label>
+  <label>受験番号 <input id="examNumber" value="12345678"></label>
+
+  <button id="generate">PDF生成・プレビュー</button>
+  <a id="download" style="pointer-events:none;opacity:0.5;margin-left:8px;" download>ダウンロード</a>
+
+  <h3>テンプレートPDF</h3>
+  <p>
+    <a id="templateLink" href="https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf" target="_blank" rel="noopener">IPAテンプレートをこのリンクからダウンロード</a>
+  </p>
+  <label>またはローカルに保存したテンプレートPDFを選択: <input id="templateFile" type="file" accept="application/pdf"></label>
+
+  <h3>ログ</h3>
+  <div id="log"></div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
