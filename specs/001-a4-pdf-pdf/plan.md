@@ -1,6 +1,6 @@
 ## Implementation Plan: A4 PDF生成 — IPA答案用紙の個人情報開示申請用PDF
 
-**Branch**: `001-a4-pdf-pdf` | **Date**: 2025-09-19 | **Spec**: /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/spec.md
+**Branch**: `001-a4-pdf-pdf` | **Date**: 2025-09-19 | **Spec**: ./specs/001-a4-pdf-pdf/spec.md
 **Input**: Feature specification (上記パス)
 
 ## Summary
@@ -61,13 +61,13 @@ Contracts (UI-level)
 - [x] Phase 1: Design complete
 - [x] Phase 2: Task planning complete
 
-## Artifacts generated (absolute paths)
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/plan.md
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/research.md
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/data-model.md
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/quickstart.md
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/contracts/input-contract.md
-- /home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/tasks.md
+## Artifacts generated (relative paths)
+- ./specs/001-a4-pdf-pdf/plan.md
+- ./specs/001-a4-pdf-pdf/research.md
+- ./specs/001-a4-pdf-pdf/data-model.md
+- ./specs/001-a4-pdf-pdf/quickstart.md
+- ./specs/001-a4-pdf-pdf/contracts/input-contract.md
+- ./home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/tasks.md
 
 ## Next steps
 - レビューで `FR-005`（フォント）とテンプレートの配布方法を確定してください。
@@ -75,7 +75,7 @@ Contracts (UI-level)
 # Implementation Plan: [FEATURE]
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Input**: Feature specification from `/specs/001-a4-pdf-pdf/spec.md`
 
 ## Execution Flow (/plan command scope)
 ```
@@ -293,10 +293,10 @@ ios/ or android/
 ## Progress Tracking
 *This checklist is updated during execution flow*
 
-**Phase Status**:
-- [ ] Phase 0: Research complete (/plan command)
-- [ ] Phase 1: Design complete (/plan command)
-- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
+- **Phase Status**:
+- [x] Phase 0: Research complete (/plan command)
+- [x] Phase 1: Design complete (/plan command)
+- [x] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed

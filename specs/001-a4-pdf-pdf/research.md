@@ -16,3 +16,15 @@ Phase0の成果物。仕様の不明点を解消し、技術選定と運用方�
 ## リスクと軽減策
 - フォント埋め込みが不完全だと印刷で崩れるリスク → 埋め込みテストを早期に行い、必要ならデザインの微修正で対応。
 - テンプレート座標の微調整が必要 → テンプレートごとに小さな補正マトリクスを許容する。
+
+## Noto Sans JP (CDN) 実装メモ
+
+- Google Fonts の CSS を使用して `woff2` を取得し、FontFace API でロードします。例: `https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap` を fetch し、CSS内の `src: url(...)` を抽出して `FontFace` に渡して `load()` -> `document.fonts.add()` します。
+- 注意: `woff2` を直接 `pdf-lib` に埋め込めない場合があるため（pdf-lib は通常 ttf/otf のバイナリを期待）、表示と埋め込みを分離します:
+  - 表示: FontFace でブラウザに登録し canvas に描画して表示に使う
+  - 埋め込み: ユーザ提供の `.ttf/.otf` を優先して pdf-lib に埋め込む。未提供の場合は Canvas を PNG にして `embedPng` で埋め込むフォールバックを使う。
+
+## Phase0 outcome
+
+- Noto Sans JP を CDN 経由で表示に利用する方針を採用。
+- これにより PoC のユーザ体験が向上するが、印刷品質を担保するためにローカル ttf/otf を埋め込みできるパスを残す。
