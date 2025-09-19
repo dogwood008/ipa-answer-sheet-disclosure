@@ -16,8 +16,9 @@ const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght
 const log = (s)=>{document.getElementById('log').textContent += s+"\n"}
 
 const fieldMap = [
-  { key:'name', x: 50, y: 720, size: 14, type:'text' },
-  { key:'examNumber', x: 420, y: 720, size: 12, type:'text' }
+  // width is in PDF points, maxLines is integer
+  { key:'name', x: 50, y: 720, size: 14, type:'text', width: 300, maxLines: 2 },
+  { key:'examNumber', x: 420, y: 720, size: 12, type:'text', width: 120, maxLines: 1 }
 ]
 
 async function fetchArrayBuffer(url){
@@ -82,7 +83,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Render text to a PNG using a given fontFamily and return PNG bytes (ArrayBuffer)
-function renderTextToPngBytes(text, fontFamily, fontSizePx){
+function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, maxLines = 1){
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   // jsdom in Node does not implement canvas; provide a simple fallback PNG
@@ -95,20 +96,76 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx){
     for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i)
     return buf.buffer
   }
-  // use a conservative padding
+  // when canvas is available, support wrapping and auto-shrink
   const padding = 8
-  ctx.font = `${fontSizePx}px "${fontFamily}", sans-serif`
-  const metrics = ctx.measureText(text)
-  const width = Math.ceil(metrics.width) + padding*2
-  const height = Math.ceil(fontSizePx * 1.3) + padding*2
+  ctx.fillStyle = '#000'
+  let fontPx = fontSizePx
+  ctx.textBaseline = 'top'
+  // determine maxWidthPx from parameter or fallback heuristic
+  if(!maxWidthPx){
+    // if no constraint provided, assume a reasonable width proportional to font size
+    maxWidthPx = Math.round(fontPx * 20)
+  }
+
+  // Helper to measure and layout lines for given font size
+  function layoutLinesForFontSize(fs){
+    ctx.font = `${fs}px "${fontFamily}", sans-serif`
+    const words = text.split(/(\s+)/)
+    const lines = []
+    let cur = ''
+    for (const w of words){
+      const test = cur ? (cur + w) : w
+      const m = ctx.measureText(test)
+      if (m.width + padding*2 <= maxWidthPx || cur === ''){
+        cur = test
+      } else {
+        lines.push(cur.trimEnd())
+        cur = w.trimStart()
+      }
+    }
+    if(cur) lines.push(cur)
+    return lines
+  }
+
+  // Try to layout with given font size; if exceeds maxLines try shrinking
+  let lines = layoutLinesForFontSize(fontPx)
+  const minFontPx = 8
+  while(lines.length > maxLines && fontPx > minFontPx){
+    fontPx = Math.max(minFontPx, fontPx - 1)
+    lines = layoutLinesForFontSize(fontPx)
+  }
+
+  // If still too many lines, clamp to maxLines and truncate last line with ellipsis
+  if(lines.length > maxLines){
+    lines = lines.slice(0, maxLines)
+    const last = lines[lines.length-1]
+    // truncate last to fit
+    ctx.font = `${fontPx}px "${fontFamily}", sans-serif`
+    let truncated = last
+    while(ctx.measureText(truncated + '…').width + padding*2 > maxWidthPx && truncated.length>0){
+      truncated = truncated.slice(0, -1)
+    }
+    lines[lines.length-1] = truncated + '…'
+  }
+
+  // compute canvas size
+  ctx.font = `${fontPx}px "${fontFamily}", sans-serif`
+  let maxW = 0
+  for(const l of lines){
+    const m = ctx.measureText(l)
+    if(m.width > maxW) maxW = m.width
+  }
+  const width = Math.ceil(maxW) + padding*2
+  const height = Math.ceil(fontPx * 1.3 * lines.length) + padding*2
   canvas.width = width
   canvas.height = height
-  // draw white transparent background
+  // draw text lines
   ctx.clearRect(0,0,width,height)
   ctx.fillStyle = '#000'
-  ctx.font = `${fontSizePx}px "${fontFamily}", sans-serif`
-  ctx.textBaseline = 'top'
-  ctx.fillText(text, padding, padding)
+  ctx.font = `${fontPx}px "${fontFamily}", sans-serif`
+  for(let i=0;i<lines.length;i++){
+    ctx.fillText(lines[i], padding, padding + i * Math.ceil(fontPx * 1.3))
+  }
   const dataUrl = canvas.toDataURL('image/png')
   // convert dataURL to ArrayBuffer
   const base64 = dataUrl.split(',')[1]
@@ -316,14 +373,61 @@ async function generate(){
       const v = data[f.key] || ''
       try {
         if (f.type === 'text' || !f.type) {
+          // Attempt PDF-native layout using font metrics when width/maxLines provided
+          const maxWidthPts = f.width || null
+          const maxLines = f.maxLines || 1
+          let didPdfLayout = false
           try {
-            page.drawText(String(v), {
-              x: f.x,
-              y: f.y,
-              size: f.size,
-              font: helvetica,
-              color: rgb(0, 0, 0)
-            })
+            if (maxWidthPts && helvetica && typeof helvetica.widthOfTextAtSize === 'function'){
+              // layout using pdf-lib font metrics
+              let fontPt = f.size
+              const minFontPt = 8
+              function layoutLinesForFont(fs){
+                const words = String(v).split(/(\s+)/)
+                const lines = []
+                let cur = ''
+                for(const w of words){
+                  const test = cur ? (cur + w) : w
+                  const wPts = helvetica.widthOfTextAtSize(test, fs)
+                  if(wPts <= maxWidthPts || cur === ''){
+                    cur = test
+                  } else {
+                    lines.push(cur.trimEnd())
+                    cur = w.trimStart()
+                  }
+                }
+                if(cur) lines.push(cur)
+                return lines
+              }
+              let lines = layoutLinesForFont(fontPt)
+              while(lines.length > maxLines && fontPt > minFontPt){
+                fontPt = Math.max(minFontPt, fontPt - 1)
+                lines = layoutLinesForFont(fontPt)
+              }
+              if(lines.length > maxLines){
+                lines = lines.slice(0, maxLines)
+                let last = lines[lines.length-1]
+                while(helvetica.widthOfTextAtSize(last + '…', fontPt) > maxWidthPts && last.length>0){
+                  last = last.slice(0, -1)
+                }
+                lines[lines.length-1] = last + '…'
+              }
+              // draw lines using pdf-lib at PDF points; use leading 1.2
+              const leading = fontPt * 1.2
+              for(let i=0;i<lines.length;i++){
+                page.drawText(lines[i], { x: f.x, y: f.y - i*leading, size: fontPt, font: helvetica, color: rgb(0,0,0) })
+              }
+              didPdfLayout = true
+            }
+            if(!didPdfLayout){
+              page.drawText(String(v), {
+                x: f.x,
+                y: f.y,
+                size: f.size,
+                font: helvetica,
+                color: rgb(0, 0, 0)
+              })
+            }
           } catch (errDraw) {
             // If drawing fails (encoding), try rasterizing using uploaded font or Noto loaded via FontFace
             console.warn('drawText failed, will try canvas raster fallback', errDraw)
@@ -331,9 +435,10 @@ async function generate(){
             if (rasterFontFamily) {
               try {
                 const fontPx = Math.round(f.size * 1.3)
-                const pngBytes = renderTextToPngBytes(String(v), rasterFontFamily, fontPx)
+                // convert maxWidth in points to pixels for canvas rasterization if provided
+                const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
+                const pngBytes = renderTextToPngBytes(String(v), rasterFontFamily, fontPx, maxWidthPx, f.maxLines || 1)
                 const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(targetDoc, pngBytes)
-                // Draw the rasterized text at the computed PDF point dimensions
                 page.drawImage(pngImage, { x: f.x, y: f.y, width: widthPts, height: heightPts })
                 log('canvasラスタフォールバックで描画しました')
               } catch (rasterErr) {
