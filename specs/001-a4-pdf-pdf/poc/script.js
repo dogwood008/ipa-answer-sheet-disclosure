@@ -119,6 +119,18 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx){
   return buf.buffer
 }
 
+// Helper: embed PNG bytes into pdf-lib document and return image + dimensions in PDF points
+const CSS_DPI = 96
+const PDF_DPI = 72
+const PIXELS_PER_POINT = CSS_DPI / PDF_DPI // typically 1.333...
+async function embedPngBytesAsPdfImage(targetDoc, pngBytes){
+  const pngImage = await targetDoc.embedPng(pngBytes)
+  // pngImage.width/height are in pixels; convert to PDF points
+  const widthPts = pngImage.width / PIXELS_PER_POINT
+  const heightPts = pngImage.height / PIXELS_PER_POINT
+  return { pngImage, widthPts, heightPts }
+}
+
 // Render first page of a PDF (ArrayBuffer) to PNG using PDF.js.
 // scale: rendering scale where 1.0 means 72dpi. For 300dpi use 300/72.
 // Returns { bytes: ArrayBuffer, width: px, height: px, widthPts: pt, heightPts: pt }
@@ -319,9 +331,9 @@ async function generate(){
               try {
                 const fontPx = Math.round(f.size * 1.3)
                 const pngBytes = renderTextToPngBytes(String(v), rasterFontFamily, fontPx)
-                const pngImage = await targetDoc.embedPng(pngBytes)
-                const pngDims = pngImage.scale(1)
-                page.drawImage(pngImage, { x: f.x, y: f.y, width: pngDims.width, height: pngDims.height })
+                const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(targetDoc, pngBytes)
+                // Draw the rasterized text at the computed PDF point dimensions
+                page.drawImage(pngImage, { x: f.x, y: f.y, width: widthPts, height: heightPts })
                 log('canvasラスタフォールバックで描画しました')
               } catch (rasterErr) {
                 log('canvasラスタリングでの描画に失敗しました: ' + (rasterErr && rasterErr.message))
