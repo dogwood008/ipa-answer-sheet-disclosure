@@ -12,6 +12,8 @@
 </head>
   <!-- pdf-lib UMD from CDN (loads global PDFLib) -->
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <!-- fontkit UMD for embedding custom TTF/OTF with pdf-lib -->
+  <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
 </head>
 </head>
 <body>
@@ -29,6 +31,7 @@
     <a id="templateLink" href="https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf" target="_blank" rel="noopener">IPAテンプレートをこのリンクからダウンロード</a>
   </p>
   <label>またはローカルに保存したテンプレートPDFを選択: <input id="templateFile" type="file" accept="application/pdf"></label>
+  <label>フォントファイル（日本語対応：.ttf/.otf）を選択: <input id="fontFile" type="file" accept="font/ttf,font/otf,.ttf,.otf"></label>
 
   <h3>ログ</h3>
   <div id="log"></div>
