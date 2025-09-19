@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info:
+  title: IPA A4 PDF PoC API (placeholder)
+  version: '0.1.0'
+paths:
+  /generate:
+    post:
+      summary: Generate filled PDF (PoC - client-only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: PDF generated
+          content:
+            application/pdf: {}
+components:
+  schemas:
+    UserInput:
+      type: object
+      properties:
+        name:
+          type: string
+        exam_number:
+          type: string
+      required:
+        - name
+        - exam_number

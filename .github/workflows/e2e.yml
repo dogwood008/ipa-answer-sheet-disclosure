@@ -17,6 +17,12 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: npm ci
+      - name: Install Chromium for puppeteer-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+      - name: Set CHROME_PATH
+        run: echo "CHROME_PATH=/usr/bin/chromium-browser" >> $GITHUB_ENV
       - name: Start static server
         run: |
           cd specs/001-a4-pdf-pdf/poc

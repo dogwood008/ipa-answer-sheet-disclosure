@@ -1,9 +1,10 @@
-const puppeteer = require('puppeteer')
+const puppeteer = require('puppeteer-core')
 const fs = require('fs')
 
 describe('PoC E2E generate', ()=>{
   test('opens page and attempts generation', async ()=>{
-    const browser = await puppeteer.launch({args:['--no-sandbox','--disable-setuid-sandbox']})
+  const execPath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
+  const browser = await puppeteer.launch({executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox']})
     const page = await browser.newPage()
     await page.goto('http://localhost:8000')
     await page.type('#name','テスト 太郎')
