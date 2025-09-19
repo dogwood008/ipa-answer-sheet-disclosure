@@ -1,6 +1,14 @@
 // Use the UMD build loaded via <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 // This avoids CORS issues that occur when importing the ESM build from unpkg in some setups.
-const { PDFDocument, rgb, StandardFonts } = PDFLib
+let PDFDocument, rgb, StandardFonts
+if (typeof PDFLib !== 'undefined' && PDFLib){
+  ({ PDFDocument, rgb, StandardFonts } = PDFLib)
+}else{
+  // Running in Node (Jest) or environment without PDFLib. Provide safe fallbacks
+  PDFDocument = undefined
+  rgb = function(){ return { r:0, g:0, b:0 } }
+  StandardFonts = {}
+}
 
 const TEMPLATE_URL = 'https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf'
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
@@ -72,6 +80,16 @@ async function loadNotoFromGoogleFonts(){
 function renderTextToPngBytes(text, fontFamily, fontSizePx){
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
+  // jsdom in Node does not implement canvas; provide a simple fallback PNG
+  if(!ctx){
+    // 1x1 transparent PNG base64
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='
+    const binary = atob(base64)
+    const len = binary.length
+    const buf = new Uint8Array(len)
+    for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i)
+    return buf.buffer
+  }
   // use a conservative padding
   const padding = 8
   ctx.font = `${fontSizePx}px "${fontFamily}", sans-serif`
@@ -350,5 +368,16 @@ async function generate(){
   }
 }
 
-document.getElementById('generate').addEventListener('click', ()=>{generate()})
-document.getElementById('download').addEventListener('click', ()=>{/* a tag handled by href */})
+const _genEl = (typeof document !== 'undefined') ? document.getElementById('generate') : null
+if(_genEl && typeof _genEl.addEventListener === 'function') _genEl.addEventListener('click', ()=>{generate()})
+const _dlEl = (typeof document !== 'undefined') ? document.getElementById('download') : null
+if(_dlEl && typeof _dlEl.addEventListener === 'function') _dlEl.addEventListener('click', ()=>{/* a tag handled by href */})
+
+// Exports for Node/Jest tests
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = {
+    renderTextToPngBytes,
+    readFileAsArrayBuffer,
+    loadFontFaceFromFile
+  }
+}

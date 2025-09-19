@@ -1,0 +1,14 @@
+{
+  "name": "a4-pdf-poc-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test:e2e": "node tests/e2e/run.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^21.0.0"
+  },
+  "dependencies": {
+    "puppeteer": "^24.22.0"
+  }
+}
