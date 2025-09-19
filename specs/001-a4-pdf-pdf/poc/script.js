@@ -76,6 +76,11 @@ async function loadNotoFromGoogleFonts(){
   }
 }
 
+// Expose in browser for tests and in module exports for Node
+if (typeof window !== 'undefined') {
+  try{ window.loadNotoFromGoogleFonts = loadNotoFromGoogleFonts }catch(e){}
+}
+
 // Render text to a PNG using a given fontFamily and return PNG bytes (ArrayBuffer)
 function renderTextToPngBytes(text, fontFamily, fontSizePx){
   const canvas = document.createElement('canvas')

@@ -14,7 +14,7 @@
    - 出力: `tests/unit/render.spec.js`
    - 依存: なし
 
-3. (P) 実装: Google Fonts 経由で Noto Sans JP を FontFace API でロードする機能を `script.js` に追加。
+3. [X] (P) 実装: Google Fonts 経由で Noto Sans JP を FontFace API でロードする機能を `script.js` に追加。
    - 目的: `NOTO_CSS_URL` を fetch して CSS 内の font URL を抽出し、`FontFace` で登録・待機するロジックを実装。
    - テスト: FontFace 登録後に Canvas で同フォントが利用可能かを E2E で確認（task 1 の拡張）
    - 依存: task 1, task 2
