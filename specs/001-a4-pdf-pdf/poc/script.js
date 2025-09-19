@@ -3,7 +3,7 @@
 const { PDFDocument, rgb, StandardFonts } = PDFLib
 
 const TEMPLATE_URL = 'https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf'
-const NOTO_CSS_URL = 'https://fonts.gstatic.com/s/notosansjp/v.../NotoSansJP-Regular.otf' // best-effort placeholder
+const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 
 const log = (s)=>{document.getElementById('log').textContent += s+"\n"}
 
@@ -45,6 +45,29 @@ async function loadFontFaceFromFile(file){
   }
 }
 
+// Best-effort: load Noto Sans JP from Google Fonts CSS and register via FontFace API.
+// Returns the family name registered, or throws on fatal errors.
+async function loadNotoFromGoogleFonts(){
+  try{
+    const cssRes = await fetch(NOTO_CSS_URL, { mode: 'cors' })
+    if(!cssRes.ok) throw new Error('failed to fetch Google Fonts CSS: '+cssRes.status)
+    const cssText = await cssRes.text()
+    // find first url(...) occurrence (woff2 hosted on fonts.gstatic.com)
+    const m = cssText.match(/url\((https?:[^)]+)\) format\('woff2'\)/i) || cssText.match(/url\((https?:[^)]+)\)/i)
+    if(!m) throw new Error('no font URL found in CSS')
+    const fontUrl = m[1].replace(/"/g,'').replace(/'/g,'')
+    const family = 'NotoSansJP_Google'
+    // Create FontFace using the remote woff2 URL. Many Google Fonts endpoints allow cross-origin font use.
+    const fontFace = new FontFace(family, `url(${fontUrl}) format('woff2')`)
+    await fontFace.load()
+    document.fonts.add(fontFace)
+    return family
+  }catch(err){
+    console.warn('loadNotoFromGoogleFonts failed', err)
+    throw err
+  }
+}
+
 // Render text to a PNG using a given fontFamily and return PNG bytes (ArrayBuffer)
 function renderTextToPngBytes(text, fontFamily, fontSizePx){
   const canvas = document.createElement('canvas')
@@ -71,6 +94,30 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx){
   const buf = new Uint8Array(len)
   for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i)
   return buf.buffer
+}
+
+// Render first page of a PDF (ArrayBuffer) to PNG using PDF.js.
+// scale: rendering scale where 1.0 means 72dpi. For 300dpi use 300/72.
+// Returns { bytes: ArrayBuffer, width: px, height: px, widthPts: pt, heightPts: pt }
+async function renderFirstPageToPngViaPDFJS(arrayBuffer, scale=2){
+  if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js が読み込まれていません')
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+  const pdf = await loadingTask.promise
+  const page = await pdf.getPage(1)
+  const viewport = page.getViewport({ scale })
+  const baseViewport = page.getViewport({ scale: 1 })
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = Math.ceil(viewport.width)
+  canvas.height = Math.ceil(viewport.height)
+  await page.render({ canvasContext: ctx, viewport }).promise
+  const dataUrl = canvas.toDataURL('image/png')
+  const base64 = dataUrl.split(',')[1]
+  const binary = atob(base64)
+  const len = binary.length
+  const buf = new Uint8Array(len)
+  for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i)
+  return { bytes: buf.buffer, width: canvas.width, height: canvas.height, widthPts: baseViewport.width, heightPts: baseViewport.height }
 }
 
 async function generate(){
@@ -110,22 +157,77 @@ async function generate(){
     throw loadErr
   }
 
-    // Register fontkit so pdf-lib can embed custom TTF/OTF
+    // 1) 暗号化フラグを簡易検出（ヒューリスティック）
+    const hasEncryptToken = (()=>{
+      try{
+        const head = new TextDecoder('latin1').decode(new Uint8Array(templateBytes).slice(0, 20000))
+        return head.includes('/Encrypt') || head.includes('/Filter/Standard')
+      }catch(_){ return false }
+    })()
+    if (hasEncryptToken) {
+      log('注意: このテンプレートPDFは暗号化情報を含む可能性があります（/Encrypt）。')
+    }
+
+    // 2) 可能なら一度保存→再読み込みして正規化（暗号化やレイヤの癖を軽減）
+    let sourceDoc = pdfDoc
     try{
-      if (typeof fontkit !== 'undefined' && typeof pdfDoc.registerFontkit === 'function') {
-        pdfDoc.registerFontkit(fontkit)
+      const normalizedBytes = await pdfDoc.save()
+      sourceDoc = await PDFDocument.load(normalizedBytes)
+      log('テンプレートPDFを一度正規化して再読み込みしました')
+    }catch(normErr){
+      console.warn('normalize failed (save→reload)', normErr)
+      log('テンプレートの正規化に失敗しました（処理は継続します）')
+    }
+
+    // 3) 新規PDFを作成し、テンプレートの1ページ目をインポート
+    const outDoc = await PDFDocument.create()
+    // Register fontkit on the output document for custom font embedding
+    try{
+      if (typeof fontkit !== 'undefined' && typeof outDoc.registerFontkit === 'function') {
+        outDoc.registerFontkit(fontkit)
         log('fontkit を登録しました（カスタムフォント埋め込み有効）')
-      } else {
-        log('fontkit が見つかりません。カスタムフォントの埋め込みに失敗する可能性があります。')
       }
     }catch(regErr){
       console.warn('fontkit register failed', regErr)
       log('fontkit の登録に失敗しました: '+(regErr && regErr.message))
     }
 
-    // try to use uploaded font if provided
-    let embeddedFont = null
-    let uploadedFontFamily = null
+    let page = null
+    let docToSave = outDoc
+    try{
+      const [imported] = await outDoc.copyPages(sourceDoc, [0])
+      page = outDoc.addPage(imported)
+    }catch(copyErr){
+      console.warn('copyPages failed, fallback to drawing on sourceDoc directly', copyErr)
+      log('テンプレートのインポートに失敗しました。PDF.js で背景をラスタ化（300dpi）して新規PDFへ貼り込みます。')
+      try{
+        const DPI_SCALE = 300/72
+        const bg = await renderFirstPageToPngViaPDFJS(templateBytes, DPI_SCALE)
+        const bgImage = await outDoc.embedPng(bg.bytes)
+        // PDFの実寸（ポイント）でページを作り、画像を実寸で配置（300dpi相当で高精細）
+        const pageDims = [bg.widthPts, bg.heightPts]
+        page = outDoc.addPage(pageDims)
+        page.drawImage(bgImage, { x: 0, y: 0, width: bg.widthPts, height: bg.heightPts })
+        docToSave = outDoc
+      }catch(rastErr){
+        console.error('PDF.js raster fallback failed', rastErr)
+        log('PDF.js ラスタ化のフォールバックにも失敗しました。')
+        // 最終手段：sourceDoc に直接描画（見えない可能性あり）
+        try{
+          const pages = sourceDoc.getPages()
+          page = pages && pages[0]
+          docToSave = sourceDoc
+          log('最終フォールバック: 直接描画モードに移行します。')
+        }catch(getPagesErr){
+          console.error(getPagesErr)
+        }
+      }
+    }
+
+  // try to use uploaded font if provided
+  let embeddedFont = null
+  let uploadedFontFamily = null
+  let notoFontFamily = null
     let uploadedFontFile = null
     const fontInput = document.getElementById('fontFile')
     if(fontInput && fontInput.files && fontInput.files.length>0){
@@ -133,7 +235,8 @@ async function generate(){
       try{
         log('アップロードされたフォントをpdf-libに埋め込もうとしています...')
         const fontBytes = await readFileAsArrayBuffer(uploadedFontFile)
-        embeddedFont = await pdfDoc.embedFont(fontBytes)
+        const targetDoc = (docToSave || outDoc)
+        embeddedFont = await targetDoc.embedFont(fontBytes)
         log('pdf-libへのフォント埋め込みに成功しました')
       }catch(fe){
         log('pdf-libへのフォント埋め込みに失敗しました。フォールバック処理を試みます。')
@@ -149,15 +252,23 @@ async function generate(){
       }
     }
 
-    if(typeof pdfDoc.getPages !== 'function'){
-      throw new Error('PDFドキュメントのページを取得できません。読み込みに失敗しています。')
+    // If user didn't upload a font, try to load Noto Sans JP via Google Fonts for canvas rendering
+    if(!uploadedFontFamily){
+      try{
+        log('Google Fonts (Noto Sans JP) を読み込み中...')
+        notoFontFamily = await loadNotoFromGoogleFonts()
+        log('Google Fonts を FontFace として読み込みました: '+notoFontFamily)
+      }catch(ntErr){
+        log('Google Fonts の読み込みに失敗しました: '+(ntErr && ntErr.message))
+        console.warn(ntErr)
+      }
     }
-    const pages = pdfDoc.getPages()
-    if(!pages || pages.length===0) throw new Error('PDFにページが含まれていません')
-    const page = pages[0]
+
+    if(!page) throw new Error('テンプレートPDFからページを取り込めませんでした')
 
   // font fallback: use uploaded font or StandardFonts.Helvetica
-  const helvetica = embeddedFont || await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const targetDoc = (docToSave || outDoc)
+  const helvetica = embeddedFont || await targetDoc.embedFont(StandardFonts.Helvetica)
 
     // collect input
     const name = document.getElementById('name').value
@@ -165,57 +276,63 @@ async function generate(){
     const data = { name, examNumber }
 
     // Draw fields (use for..of so we can await inside the loop)
-    for(const f of fieldMap){
+    for (const f of fieldMap) {
       const v = data[f.key] || ''
-      try{
-        if(f.type === 'text' || !f.type){
-          try{
+      try {
+        if (f.type === 'text' || !f.type) {
+          try {
             page.drawText(String(v), {
               x: f.x,
               y: f.y,
               size: f.size,
               font: helvetica,
-              color: rgb(0,0,0)
+              color: rgb(0, 0, 0)
             })
-          }catch(errDraw){
-            // If drawing fails (encoding), try rasterizing using uploaded font (if available)
+          } catch (errDraw) {
+            // If drawing fails (encoding), try rasterizing using uploaded font or Noto loaded via FontFace
             console.warn('drawText failed, will try canvas raster fallback', errDraw)
-            if(uploadedFontFamily){
-              try{
+            const rasterFontFamily = uploadedFontFamily || notoFontFamily
+            if (rasterFontFamily) {
+              try {
                 const fontPx = Math.round(f.size * 1.3)
-                const pngBytes = renderTextToPngBytes(String(v), uploadedFontFamily, fontPx)
-                const pngImage = await pdfDoc.embedPng(pngBytes)
+                const pngBytes = renderTextToPngBytes(String(v), rasterFontFamily, fontPx)
+                const pngImage = await targetDoc.embedPng(pngBytes)
                 const pngDims = pngImage.scale(1)
                 page.drawImage(pngImage, { x: f.x, y: f.y, width: pngDims.width, height: pngDims.height })
                 log('canvasラスタフォールバックで描画しました')
-              }catch(rasterErr){
-                log('canvasラスタリングでの描画に失敗しました: '+(rasterErr && rasterErr.message))
+              } catch (rasterErr) {
+                log('canvasラスタリングでの描画に失敗しました: ' + (rasterErr && rasterErr.message))
                 console.error(rasterErr)
               }
-            }else{
+            } else {
               throw errDraw
             }
           }
-        }else if(f.type === 'checkbox'){
+        } else if (f.type === 'checkbox') {
           // simple checkbox/cross rendering using unicode glyphs for reliability
           const mark = (v && String(v).toLowerCase() !== 'false') ? '☑' : '☐'
-          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0,0,0) })
-        }else if(f.type === 'circle'){
+          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
+        } else if (f.type === 'circle') {
           const mark = (v && String(v).toLowerCase() !== 'false') ? '◯' : '○'
-          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0,0,0) })
-        }else{
+          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
+        } else {
           // unknown type: fallback to text
-          page.drawText(String(v), { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0,0,0) })
+          page.drawText(String(v), { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
         }
-      }catch(drawErr){
-        log('描画エラー: '+drawErr.message)
-        if(!embeddedFont){
+      } catch (drawErr) {
+        log('描画エラー: ' + (drawErr && drawErr.message))
+        if (!embeddedFont) {
           log('日本語など非ASCII文字を描画するには日本語対応フォントを選択してください（例: Noto Sans JP の .ttf）。')
         }
       }
     }
-
-  const pdfBytes = await pdfDoc.save()
+  const pdfBytes = await (docToSave||outDoc).save()
+  try{
+    // expose first bytes to test harness
+    if(typeof window !== 'undefined'){
+      try{ window.__lastPdfFirstBytes = Array.from(new Uint8Array(pdfBytes.slice(0,8))) }catch(e){}
+    }
+  }catch(_){}
   const blob = new Blob([pdfBytes],{type:'application/pdf'})
   const url = URL.createObjectURL(blob)
 
