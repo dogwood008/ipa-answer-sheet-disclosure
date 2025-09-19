@@ -49,7 +49,7 @@
    - テスト: E2E で埋め込みが成功することを検証
    - 依存: task 1, task 3
 
-10. (P) ドキュメント: `quickstart.md` を更新して E2E テスト実行手順と CI の説明を追加。
+10. [X] (P) ドキュメント: `quickstart.md` を更新して E2E テスト実行手順と CI の説明を追加。
     - 出力: 更新済み `quickstart.md`
     - 依存: none (P)
 
