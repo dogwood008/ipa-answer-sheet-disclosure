@@ -273,6 +273,7 @@ async function generate(){
         const targetDoc = (docToSave || outDoc)
         embeddedFont = await targetDoc.embedFont(fontBytes)
         log('pdf-libへのフォント埋め込みに成功しました')
+  try{ if(typeof window !== 'undefined'){ window.__embeddedFontEmbedded = true; window.__embeddedFontName = uploadedFontFile.name } }catch(e){}
       }catch(fe){
         log('pdf-libへのフォント埋め込みに失敗しました。フォールバック処理を試みます。')
         console.error('embedFont error:', fe)
