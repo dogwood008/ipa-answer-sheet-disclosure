@@ -67,7 +67,7 @@ Contracts (UI-level)
 - ./specs/001-a4-pdf-pdf/data-model.md
 - ./specs/001-a4-pdf-pdf/quickstart.md
 - ./specs/001-a4-pdf-pdf/contracts/input-contract.md
-- ./home/kit/projects/github/ipa-answer-sheet-disclosure/specs/001-a4-pdf-pdf/tasks.md
+- ./specs/001-a4-pdf-pdf/tasks.md
 
 ## Next steps
 - レビューで `FR-005`（フォント）とテンプレートの配布方法を確定してください。
