@@ -58,7 +58,7 @@
     - 出力: `.github/workflows/e2e.yml`
     - 依存: task 1
 
-12. (P) ドキュメント: `README.md` に Noto Sans JP の利用ポリシー（CDN 表示・ローカル埋め込みの違いと注意）を追記。
+12. [X] (P) ドキュメント: `README.md` に Noto Sans JP の利用ポリシー（CDN 表示・ローカル埋め込みの違いと注意）を追記。
     - 依存: task 3
 
 13. (P) メンテナンス: `specs/001-a4-pdf-pdf/contracts/openapi.yaml` を 3.1.x に合わせる、または PoC 注記を追加。
