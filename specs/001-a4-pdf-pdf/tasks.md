@@ -64,7 +64,7 @@
 13. (P) メンテナンス: `specs/001-a4-pdf-pdf/contracts/openapi.yaml` を 3.1.x に合わせる、または PoC 注記を追加。
     - 依存: none (P)
 
-14. (P) 開発支援: `scripts/update-agent-context.sh` を実行してエージェントコンテキストを更新（AI アシスタント用の補助資料更新）。
+14. [X] (P) 開発支援: `scripts/update-agent-context.sh` を実行してエージェントコンテキストを更新（AI アシスタント用の補助資料更新）。
     - 依存: none (P)
 
 15. (P) 品質: ドキュメントの lint 警告（全角/半角、括弧等）を修正するタスク。

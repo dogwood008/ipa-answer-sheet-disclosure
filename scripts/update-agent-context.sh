@@ -25,12 +25,36 @@ fi
 
 echo "=== Updating agent context files for feature $CURRENT_BRANCH ==="
 
-# Extract tech from new plan
-NEW_LANG=$(grep "^**Language/Version**: " "$NEW_PLAN" 2>/dev/null | head -1 | sed 's/^**Language\/Version**: //' | grep -v "NEEDS CLARIFICATION" || echo "")
-NEW_FRAMEWORK=$(grep "^**Primary Dependencies**: " "$NEW_PLAN" 2>/dev/null | head -1 | sed 's/^**Primary Dependencies**: //' | grep -v "NEEDS CLARIFICATION" || echo "")
-NEW_TESTING=$(grep "^**Testing**: " "$NEW_PLAN" 2>/dev/null | head -1 | sed 's/^**Testing**: //' | grep -v "NEEDS CLARIFICATION" || echo "")
-NEW_DB=$(grep "^**Storage**: " "$NEW_PLAN" 2>/dev/null | head -1 | sed 's/^**Storage**: //' | grep -v "N/A" | grep -v "NEEDS CLARIFICATION" || echo "")
-NEW_PROJECT_TYPE=$(grep "^**Project Type**: " "$NEW_PLAN" 2>/dev/null | head -1 | sed 's/^**Project Type**: //' || echo "")
+# Extract tech from new plan (support bold and non-bold labels; escape literal asterisks)
+# Language (prefer bullet line; fallback to bold template)
+NEW_LANG=$({ \
+  sed -n 's/^[- ]*Language: //p' "$NEW_PLAN"; \
+  sed -n 's/^\*\*Language\/Version\*\*: //p' "$NEW_PLAN"; \
+} 2>/dev/null | head -1 | grep -v "NEEDS CLARIFICATION" || true)
+
+# Framework / Primary Dependencies (prefer Framework bullet; fallback to Primary Dependencies)
+NEW_FRAMEWORK=$({ \
+  sed -n 's/^[- ]*Framework: //p' "$NEW_PLAN"; \
+  sed -n 's/^\*\*Primary Dependencies\*\*: //p' "$NEW_PLAN"; \
+} 2>/dev/null | head -1 | grep -v "NEEDS CLARIFICATION" || true)
+
+# Testing (prefer bullet; fallback to bold)
+NEW_TESTING=$({ \
+  sed -n 's/^[- ]*Testing: //p' "$NEW_PLAN"; \
+  sed -n 's/^\*\*Testing\*\*: //p' "$NEW_PLAN"; \
+} 2>/dev/null | head -1 | grep -v "NEEDS CLARIFICATION" || true)
+
+# Storage / Database (prefer bullet; fallback to bold)
+NEW_DB=$({ \
+  sed -n 's/^[- ]*Storage: //p' "$NEW_PLAN"; \
+  sed -n 's/^\*\*Storage\*\*: //p' "$NEW_PLAN"; \
+} 2>/dev/null | head -1 | grep -v "N/A" | grep -v "NEEDS CLARIFICATION" || true)
+
+# Project Type (prefer bullet; fallback to bold)
+NEW_PROJECT_TYPE=$({ \
+  sed -n 's/^[- ]*Project Type: //p' "$NEW_PLAN"; \
+  sed -n 's/^\*\*Project Type\*\*: //p' "$NEW_PLAN"; \
+} 2>/dev/null | head -1 || true)
 
 # Function to update a single agent context file
 update_agent_file() {
@@ -97,13 +121,22 @@ update_agent_file() {
         fi
         
         # Parse existing file and create updated version
-        python3 - << EOF
+        TARGET_FILE="$target_file" TEMP_FILE="$temp_file" NEW_LANG="$NEW_LANG" NEW_FRAMEWORK="$NEW_FRAMEWORK" NEW_DB="$NEW_DB" CURRENT_BRANCH="$CURRENT_BRANCH" NEW_PROJECT_TYPE="$NEW_PROJECT_TYPE" python3 - << 'EOF'
 import re
 import sys
+import os
 from datetime import datetime
 
 # Read existing file
-with open("$target_file", 'r') as f:
+TARGET_FILE = os.environ.get('TARGET_FILE')
+TEMP_FILE = os.environ.get('TEMP_FILE')
+NEW_LANG = os.environ.get('NEW_LANG', '')
+NEW_FRAMEWORK = os.environ.get('NEW_FRAMEWORK', '')
+NEW_DB = os.environ.get('NEW_DB', '')
+CURRENT_BRANCH = os.environ.get('CURRENT_BRANCH', '')
+NEW_PROJECT_TYPE = os.environ.get('NEW_PROJECT_TYPE', '')
+
+with open(TARGET_FILE, 'r') as f:
     content = f.read()
 
 # Check if new tech already exists
@@ -113,17 +146,17 @@ if tech_section:
     
     # Add new tech if not already present
     new_additions = []
-    if "$NEW_LANG" and "$NEW_LANG" not in existing_tech:
-        new_additions.append(f"- $NEW_LANG + $NEW_FRAMEWORK ($CURRENT_BRANCH)")
-    if "$NEW_DB" and "$NEW_DB" not in existing_tech and "$NEW_DB" != "N/A":
-        new_additions.append(f"- $NEW_DB ($CURRENT_BRANCH)")
+    if NEW_LANG and NEW_LANG not in existing_tech:
+        new_additions.append(f"- {NEW_LANG} + {NEW_FRAMEWORK} ({CURRENT_BRANCH})")
+    if NEW_DB and NEW_DB not in existing_tech and NEW_DB != "N/A":
+        new_additions.append(f"- {NEW_DB} ({CURRENT_BRANCH})")
     
     if new_additions:
         updated_tech = existing_tech + "\n" + "\n".join(new_additions)
         content = content.replace(tech_section.group(0), f"## Active Technologies\n{updated_tech}\n\n")
 
 # Update project structure if needed
-if "$NEW_PROJECT_TYPE" == "web" and "frontend/" not in content:
+if NEW_PROJECT_TYPE == "web" and "frontend/" not in content:
     struct_section = re.search(r'## Project Structure\n\`\`\`\n(.*?)\n\`\`\`', content, re.DOTALL)
     if struct_section:
         updated_struct = struct_section.group(1) + "\nfrontend/src/      # Web UI"
@@ -131,18 +164,18 @@ if "$NEW_PROJECT_TYPE" == "web" and "frontend/" not in content:
                         f'\\1{updated_struct}\\2', content, flags=re.DOTALL)
 
 # Add new commands if language is new
-if "$NEW_LANG" and f"# {NEW_LANG}" not in content:
+if NEW_LANG and f"# {NEW_LANG}" not in content:
     commands_section = re.search(r'## Commands\n\`\`\`bash\n(.*?)\n\`\`\`', content, re.DOTALL)
     if not commands_section:
         commands_section = re.search(r'## Commands\n(.*?)\n\n', content, re.DOTALL)
     
     if commands_section:
         new_commands = commands_section.group(1)
-        if "Python" in "$NEW_LANG":
+        if "Python" in NEW_LANG:
             new_commands += "\ncd src && pytest && ruff check ."
-        elif "Rust" in "$NEW_LANG":
+        elif "Rust" in NEW_LANG:
             new_commands += "\ncargo test && cargo clippy"
-        elif "JavaScript" in "$NEW_LANG" or "TypeScript" in "$NEW_LANG":
+        elif "JavaScript" in NEW_LANG or "TypeScript" in NEW_LANG:
             new_commands += "\nnpm test && npm run lint"
         
         if "```bash" in content:
@@ -156,7 +189,7 @@ if "$NEW_LANG" and f"# {NEW_LANG}" not in content:
 changes_section = re.search(r'## Recent Changes\n(.*?)(\n\n|$)', content, re.DOTALL)
 if changes_section:
     changes = changes_section.group(1).strip().split('\n')
-    changes.insert(0, f"- $CURRENT_BRANCH: Added $NEW_LANG + $NEW_FRAMEWORK")
+    changes.insert(0, f"- {CURRENT_BRANCH}: Added {NEW_LANG} + {NEW_FRAMEWORK}")
     # Keep only last 3
     changes = changes[:3]
     content = re.sub(r'(## Recent Changes\n).*?(\n\n|$)', 
@@ -167,7 +200,7 @@ content = re.sub(r'Last updated: \d{4}-\d{2}-\d{2}',
                 f'Last updated: {datetime.now().strftime("%Y-%m-%d")}', content)
 
 # Write to temp file
-with open("$temp_file", 'w') as f:
+with open(TEMP_FILE, 'w') as f:
     f.write(content)
 EOF
 
