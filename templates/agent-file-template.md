@@ -21,5 +21,6 @@ Auto-generated from all feature plans. Last updated: [DATE]
 [LAST 3 FEATURES AND WHAT THEY ADDED]
 
 <!-- MANUAL ADDITIONS START -->
+ユーザとのコミュニケーションは日本語で実施してください。ただし、内部的に考える間は英語を使っても構いません。
 <!-- MANUAL ADDITIONS END -->
 ````
