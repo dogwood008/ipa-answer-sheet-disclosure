@@ -1,0 +1,16 @@
+{
+  "name": "ipa-answer-sheet-disclosure",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test:unit": "jest tests/unit --runInBand",
+    "test:e2e": "jest tests/e2e --runInBand",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "jsdom": "^22.0.0",
+    "puppeteer-core": "^24.0.0",
+    "skia-canvas": "^3.0.6"
+  }
+}
