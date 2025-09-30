@@ -5,7 +5,8 @@
   "scripts": {
     "test:unit": "jest tests/unit --runInBand",
     "test:e2e": "jest tests/e2e --runInBand",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e:local": "node scripts/run-e2e-local.js"
   },
   "devDependencies": {
     "jest": "^29.0.0",

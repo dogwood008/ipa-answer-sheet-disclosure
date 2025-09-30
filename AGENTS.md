@@ -20,6 +20,7 @@
 - 全テスト: `npm test`
 - Unit のみ: `npm run test:unit`
 - E2E のみ: `npm run test:e2e`
+ - E2E（ローカル自動・推奨）: `npm run test:e2e:local`
 
 ## E2E 実行方法（ローカル）
 1) 静的サーバ起動（別ターミナル可）
@@ -41,6 +42,10 @@
    ```sh
    npm run test:e2e
    ```
+
+補足: 自動実行
+- `npm run test:e2e:local` を使うと、静的サーバ起動→E2E 実行→サーバ停止までを一括で行います。
+- 必要に応じて `CHROME_PATH` を環境変数で指定してください（未指定時は `/usr/bin/chromium-browser` を既定とします）。
 
 注: デモページは CDN（unpkg/cdnjs/Google Fonts）に依存します。オフライン環境では失敗します。
 

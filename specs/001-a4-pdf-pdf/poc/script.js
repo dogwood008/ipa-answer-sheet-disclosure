@@ -21,6 +21,30 @@ const fieldMap = [
   { key:'examNumber', x: 420, y: 720, size: 12, type:'text', width: 120, maxLines: 1 }
 ]
 
+// Circle drawing constants (PDF points)
+const CIRCLE_POS = { x: 100, y: 680, r: 10 }
+
+// Track radio selection changes
+function setupCircleRadioListener(){
+  try{
+    const radios = document.querySelectorAll('input[name="drawCircle"]')
+    radios.forEach(r=>{
+      r.addEventListener('change', ()=>{
+        try{ window.__drawCircleOptionChanged = true }catch(_){}
+        const sel = getDrawCircleOption()
+        log(`円の描画オプションが変更されました: ${sel}`)
+      })
+    })
+  }catch(_){ /* no-op in non-browser env */ }
+}
+
+function getDrawCircleOption(){
+  try{
+    const checked = document.querySelector('input[name="drawCircle"]:checked')
+    return checked ? checked.value : 'nodraw'
+  }catch(_){ return 'nodraw' }
+}
+
 async function fetchArrayBuffer(url){
   const r = await fetch(url)
   if(!r.ok) throw new Error(`fetch failed ${r.status}`)
@@ -467,6 +491,40 @@ async function generate(){
         }
       }
     }
+
+    // Optional: draw a circle using pdf-lib when selected
+    try{
+      const opt = getDrawCircleOption()
+      if(opt === 'draw'){
+        if (typeof page.drawCircle === 'function'){
+          page.drawCircle({
+            x: CIRCLE_POS.x,
+            y: CIRCLE_POS.y,
+            size: CIRCLE_POS.r,
+            borderColor: rgb(0,0,0),
+            borderWidth: 1
+          })
+        } else {
+          page.drawEllipse({
+            x: CIRCLE_POS.x,
+            y: CIRCLE_POS.y,
+            xScale: CIRCLE_POS.r,
+            yScale: CIRCLE_POS.r,
+            borderColor: rgb(0,0,0),
+            borderWidth: 1
+          })
+        }
+        try{ if(typeof window !== 'undefined'){ window.__circleDrawn = true } }catch(_){ }
+        log('円を描画しました')
+      } else {
+        try{ if(typeof window !== 'undefined'){ window.__circleDrawn = false } }catch(_){ }
+        log('円は描画しませんでした（オプション）')
+      }
+    }catch(circleErr){
+      console.warn('circle draw failed', circleErr)
+      log('円の描画に失敗しました: '+(circleErr && circleErr.message))
+    }
+
   const pdfBytes = await (docToSave||outDoc).save()
   try{
     // expose first bytes to test harness
@@ -495,6 +553,17 @@ const _genEl = (typeof document !== 'undefined') ? document.getElementById('gene
 if(_genEl && typeof _genEl.addEventListener === 'function') _genEl.addEventListener('click', ()=>{generate()})
 const _dlEl = (typeof document !== 'undefined') ? document.getElementById('download') : null
 if(_dlEl && typeof _dlEl.addEventListener === 'function') _dlEl.addEventListener('click', ()=>{/* a tag handled by href */})
+
+// Initialize listeners when DOM is ready (browser only)
+try{
+  if (typeof document !== 'undefined'){
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', setupCircleRadioListener)
+    } else {
+      setupCircleRadioListener()
+    }
+  }
+}catch(_){ }
 
 // Exports for Node/Jest tests
 if (typeof module !== 'undefined' && module.exports){
