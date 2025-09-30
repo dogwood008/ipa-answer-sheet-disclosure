@@ -31,6 +31,12 @@
   <label>氏名 <input id="name" value="山田 太郎"></label>
   <label>受験番号 <input id="examNumber" value="12345678"></label>
 
+  <div id="circleOptions" style="margin:8px 0;">
+    <span style="margin-right:8px;">円の描画:</span>
+    <label style="margin-right:8px;"><input type="radio" name="drawCircle" id="drawCircleOn" value="draw"> 描く</label>
+    <label><input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked> 描かない</label>
+  </div>
+
   <button id="generate">PDF生成・プレビュー</button>
   <a id="download" style="pointer-events:none;opacity:0.5;margin-left:8px;" download>ダウンロード</a>
 

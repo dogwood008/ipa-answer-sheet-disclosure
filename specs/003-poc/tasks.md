@@ -4,18 +4,18 @@
 **Prerequisites**: plan.md, research.md, data-model.md, quickstart.md
 
 ## Phase 3.1: Setup
-- [ ] T001 [P] Add a new `div` element to `specs/001-a4-pdf-pdf/poc/index.html` to contain the radio button inputs.
+- [x] T001 [P] Add a new `div` element to `specs/001-a4-pdf-pdf/poc/index.html` to contain the radio button inputs.
 
 ## Phase 3.2: Core Implementation
-- [ ] T002 Modify `specs/001-a4-pdf-pdf/poc/index.html` to include a radio button group with at least two options: one to draw a circle and one not to.
-- [ ] T003 Modify `specs/001-a4-pdf-pdf/poc/script.js` to add an event listener that detects changes to the new radio button group.
-- [ ] T004 In `specs/001-a4-pdf-pdf/poc/script.js`, implement the logic to draw a black circle on the PDF using `pdf-lib`'s `drawEllipse` method when the "draw" option is selected. The circle's position and size should be based on predefined constants.
-- [ ] T005 Ensure that if the "no-draw" option is selected, no circle is drawn on the PDF.
+- [x] T002 Modify `specs/001-a4-pdf-pdf/poc/index.html` to include a radio button group with at least two options: one to draw a circle and one not to.
+- [x] T003 Modify `specs/001-a4-pdf-pdf/poc/script.js` to add an event listener that detects changes to the new radio button group.
+- [x] T004 In `specs/001-a4-pdf-pdf/poc/script.js`, implement the logic to draw a black circle on the PDF using `pdf-lib`'s `drawEllipse` method when the "draw" option is selected. The circle's position and size should be based on predefined constants.
+- [x] T005 Ensure that if the "no-draw" option is selected, no circle is drawn on the PDF.
 
 ## Phase 3.3: Tests
-- [ ] T006 [P] Create a new E2E test file `tests/e2e/draw-circle.spec.js`.
-- [ ] T007 In `tests/e2e/draw-circle.spec.js`, write a test that uses Puppeteer to select the "draw" radio button and verifies that the PDF generation is triggered.
-- [ ] T008 In `tests/e2e/draw-circle.spec.js`, add a step to the test to check a flag in the browser's `window` object to confirm that the circle-drawing code path was executed.
+- [x] T006 [P] Create a new E2E test file `tests/e2e/draw-circle.spec.js`.
+- [x] T007 In `tests/e2e/draw-circle.spec.js`, write a test that uses Puppeteer to select the "draw" radio button and verifies that the PDF generation is triggered.
+- [x] T008 In `tests/e2e/draw-circle.spec.js`, add a step to the test to check a flag in the browser's `window` object to confirm that the circle-drawing code path was executed.
 
 ## Dependencies
 - T001 must be completed before T002.
