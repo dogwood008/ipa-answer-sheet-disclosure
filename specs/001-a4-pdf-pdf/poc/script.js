@@ -15,6 +15,79 @@ const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght
 
 const log = (s)=>{document.getElementById('log').textContent += s+"\n"}
 
+// ============ Color Selection Utilities ============
+const NAMED_COLOR_HEX = { black:'#000000', red:'#FF0000', green:'#008000', blue:'#0000FF', white:'#FFFFFF' }
+function normalizeHex(hex){
+  if(!hex || typeof hex !== 'string') return null
+  const v = hex.trim()
+  if(!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) return null
+  if(v.length === 4){ const r=v[1], g=v[2], b=v[3]; return ('#'+r+r+g+g+b+b).toUpperCase() }
+  return v.toUpperCase()
+}
+function namedToHex(name){
+  if(!name || typeof name !== 'string') return null
+  const key = name.trim().toLowerCase()
+  if(NAMED_COLOR_HEX[key]) return NAMED_COLOR_HEX[key]
+  try{
+    const el = document.createElement('span')
+    el.style.color = key
+    document.body.appendChild(el)
+    const rgbStr = getComputedStyle(el).color || ''
+    document.body.removeChild(el)
+    const m = rgbStr.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i)
+    if(m){
+      const r=parseInt(m[1],10), g=parseInt(m[2],10), b=parseInt(m[3],10)
+      const to2=(n)=>n.toString(16).padStart(2,'0')
+      return ('#'+to2(r)+to2(g)+to2(b)).toUpperCase()
+    }
+  }catch(_){ }
+  return null
+}
+function normalizeColor(input){
+  if(typeof input !== 'string') return '#000000'
+  const t = input.trim()
+  const hx = normalizeHex(t); if(hx) return hx
+  const nm = namedToHex(t); if(nm) return nm
+  return '#000000'
+}
+function hexToRgb01(hex){
+  const h = normalizeHex(hex) || '#000000'
+  return {
+    r: parseInt(h.slice(1,3),16)/255,
+    g: parseInt(h.slice(3,5),16)/255,
+    b: parseInt(h.slice(5,7),16)/255
+  }
+}
+let __selectedColorHex = '#000000'
+function setSelectedColor(hex){
+  __selectedColorHex = normalizeColor(hex)
+  try{
+    // keep native color picker in sync
+    const picker = document.getElementById('colorPicker')
+    if(picker && typeof picker.value !== 'undefined'){
+      try{ picker.value = __selectedColorHex }catch(_){ /* some browsers may restrict programmatic set */ }
+    }
+    const sw = document.getElementById('colorSwatch')
+    const val = document.getElementById('colorValue')
+    if(sw){ sw.style.background = __selectedColorHex; sw.title = __selectedColorHex }
+    if(val){ val.textContent = __selectedColorHex }
+    if(typeof window !== 'undefined') window.__lastSelectedColorHex = __selectedColorHex
+  }catch(_){ }
+}
+function setupColorControls(){
+  try{
+    const btnBlack = document.getElementById('presetBlack')
+    const btnRed = document.getElementById('presetRed')
+    const picker = document.getElementById('colorPicker')
+    const nameInput = document.getElementById('colorName')
+    if(btnBlack) btnBlack.addEventListener('click', ()=> setSelectedColor('#000000'))
+    if(btnRed) btnRed.addEventListener('click', ()=> setSelectedColor('#FF0000'))
+    if(picker) picker.addEventListener('input', (e)=> setSelectedColor(e.target.value))
+    if(nameInput) nameInput.addEventListener('change', (e)=> setSelectedColor(String(e.target.value||'')))
+    setSelectedColor('#000000')
+  }catch(_){ }
+}
+
 const fieldMap = [
   // width is in PDF points, maxLines is integer
   { key:'name', x: 50, y: 720, size: 14, type:'text', width: 300, maxLines: 2 },
@@ -386,6 +459,10 @@ async function generate(){
   // font fallback: use uploaded font or StandardFonts.Helvetica
   const targetDoc = (docToSave || outDoc)
   const helvetica = embeddedFont || await targetDoc.embedFont(StandardFonts.Helvetica)
+  // determine selected color (hex → pdf-lib rgb)
+  const selHex = (typeof __selectedColorHex === 'string') ? __selectedColorHex : '#000000'
+  const pdfRGB = hexToRgb01(selHex)
+  try{ if(typeof window !== 'undefined'){ window.__lastPdfColorRGB = { ...pdfRGB } } }catch(_){ }
 
     // collect input
     const name = document.getElementById('name').value
@@ -439,7 +516,7 @@ async function generate(){
               // draw lines using pdf-lib at PDF points; use leading 1.2
               const leading = fontPt * 1.2
               for(let i=0;i<lines.length;i++){
-                page.drawText(lines[i], { x: f.x, y: f.y - i*leading, size: fontPt, font: helvetica, color: rgb(0,0,0) })
+                page.drawText(lines[i], { x: f.x, y: f.y - i*leading, size: fontPt, font: helvetica, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
               }
               didPdfLayout = true
             }
@@ -449,7 +526,7 @@ async function generate(){
                 y: f.y,
                 size: f.size,
                 font: helvetica,
-                color: rgb(0, 0, 0)
+                color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
               })
             }
           } catch (errDraw) {
@@ -476,13 +553,13 @@ async function generate(){
         } else if (f.type === 'checkbox') {
           // simple checkbox/cross rendering using unicode glyphs for reliability
           const mark = (v && String(v).toLowerCase() !== 'false') ? '☑' : '☐'
-          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
+          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
         } else if (f.type === 'circle') {
           const mark = (v && String(v).toLowerCase() !== 'false') ? '◯' : '○'
-          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
+          page.drawText(mark, { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
         } else {
           // unknown type: fallback to text
-          page.drawText(String(v), { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(0, 0, 0) })
+          page.drawText(String(v), { x: f.x, y: f.y, size: f.size, font: helvetica, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
         }
       } catch (drawErr) {
         log('描画エラー: ' + (drawErr && drawErr.message))
@@ -501,7 +578,7 @@ async function generate(){
             x: CIRCLE_POS.x,
             y: CIRCLE_POS.y,
             size: CIRCLE_POS.r,
-            borderColor: rgb(0,0,0),
+            borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b),
             borderWidth: 1
           })
         } else {
@@ -510,7 +587,7 @@ async function generate(){
             y: CIRCLE_POS.y,
             xScale: CIRCLE_POS.r,
             yScale: CIRCLE_POS.r,
-            borderColor: rgb(0,0,0),
+            borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b),
             borderWidth: 1
           })
         }
@@ -558,9 +635,9 @@ if(_dlEl && typeof _dlEl.addEventListener === 'function') _dlEl.addEventListener
 try{
   if (typeof document !== 'undefined'){
     if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', setupCircleRadioListener)
+      document.addEventListener('DOMContentLoaded', ()=>{ setupCircleRadioListener(); setupColorControls() })
     } else {
-      setupCircleRadioListener()
+      setupCircleRadioListener(); setupColorControls()
     }
   }
 }catch(_){ }
@@ -570,6 +647,9 @@ if (typeof module !== 'undefined' && module.exports){
   module.exports = {
     renderTextToPngBytes,
     readFileAsArrayBuffer,
-    loadFontFaceFromFile
+    loadFontFaceFromFile,
+    normalizeHex,
+    normalizeColor,
+    hexToRgb01
   }
 }
