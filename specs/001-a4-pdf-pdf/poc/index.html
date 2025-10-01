@@ -40,6 +40,28 @@
   <button id="generate">PDF生成・プレビュー</button>
   <a id="download" style="pointer-events:none;opacity:0.5;margin-left:8px;" download>ダウンロード</a>
 
+  <h3>色の選択</h3>
+  <div id="colorSection" style="margin:8px 0;">
+    <div style="margin-bottom:6px;">
+      <strong>プリセット:</strong>
+      <button type="button" id="presetBlack" aria-label="黒に設定">黒</button>
+      <button type="button" id="presetRed" aria-label="赤に設定">赤</button>
+    </div>
+    <div style="margin-bottom:6px;">
+      <label for="colorPicker"><strong>カラーピッカー:</strong></label>
+      <input id="colorPicker" type="color" value="#000000" aria-label="カラーピッカー" />
+    </div>
+    <div style="margin-bottom:6px;">
+      <label for="colorName"><strong>CSS 色名:</strong></label>
+      <input id="colorName" type="text" placeholder="例: green" aria-label="CSS 色名入力" />
+    </div>
+    <div>
+      <span>選択中の色プレビュー: </span>
+      <span id="colorSwatch" aria-label="選択色プレビュー" title="#000000" style="display:inline-block;width:20px;height:20px;border:1px solid #ccc;background:#000000;vertical-align:middle;"></span>
+      <span id="colorValue" style="margin-left:6px;">#000000</span>
+    </div>
+  </div>
+
   <h3>テンプレートPDF</h3>
   <p>
     <a id="templateLink" href="https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf" target="_blank" rel="noopener">IPAテンプレートをこのリンクからダウンロード</a>

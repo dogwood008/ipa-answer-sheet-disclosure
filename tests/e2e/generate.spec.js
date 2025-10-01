@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-core')
 const fs = require('fs')
+const { BASE_URL } = require('./helpers')
 
 describe('PoC E2E generate', ()=>{
   test('opens page and attempts generation', async ()=>{
@@ -11,7 +12,7 @@ describe('PoC E2E generate', ()=>{
     page.on('console', msg=>{
       try{ logs.push({type: msg.type(), text: msg.text()}) }catch(e){}
     })
-  await page.goto('http://localhost:8000')
+  await page.goto(BASE_URL)
   // upload local template to avoid CORS when fetching external template
   const templatePath = require('path').resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')
   const input = await page.$('#templateFile')
