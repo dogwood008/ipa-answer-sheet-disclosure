@@ -49,7 +49,7 @@ function namedToHex(name){
       const to2=(n)=>n.toString(16).padStart(2,'0')
       return ('#'+to2(r)+to2(g)+to2(b)).toUpperCase()
     }
-  }catch(_){ }
+  }catch(err){ console.warn('namedToHex failed to resolve color:', err) }
   return null
 }
 function normalizeColor(input){
@@ -74,14 +74,14 @@ function setSelectedColor(hex){
     // keep native color picker in sync
     const picker = document.getElementById('colorPicker')
     if(picker && typeof picker.value !== 'undefined'){
-      try{ picker.value = __selectedColorHex }catch(_){ /* some browsers may restrict programmatic set */ }
+      try{ picker.value = __selectedColorHex }catch(err){ console.warn('Failed to sync color picker value:', err) }
     }
     const sw = document.getElementById('colorSwatch')
     const val = document.getElementById('colorValue')
     if(sw){ sw.style.background = __selectedColorHex; sw.title = __selectedColorHex }
     if(val){ val.textContent = __selectedColorHex }
     if(typeof window !== 'undefined') window.__lastSelectedColorHex = __selectedColorHex
-  }catch(_){ }
+  }catch(err){ console.warn('Failed to update selected color UI:', err) }
 }
 function setupColorControls(){
   try{
@@ -94,7 +94,7 @@ function setupColorControls(){
     if(picker) picker.addEventListener('input', (e)=> setSelectedColor(e.target.value))
     if(nameInput) nameInput.addEventListener('change', (e)=> setSelectedColor(String(e.target.value||'')))
     setSelectedColor('#000000')
-  }catch(_){ }
+  }catch(err){ console.warn('Failed to setup color controls:', err) }
 }
 
 const fieldMap = [
@@ -649,7 +649,7 @@ try{
       setupCircleRadioListener(); setupColorControls()
     }
   }
-}catch(_){ }
+}catch(err){ console.warn('Failed to initialize listeners:', err) }
 
 // Exports for Node/Jest tests
 if (typeof module !== 'undefined' && module.exports){
