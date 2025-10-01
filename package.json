@@ -6,7 +6,8 @@
     "test:unit": "jest tests/unit --runInBand",
     "test:e2e": "jest tests/e2e --runInBand",
     "test": "jest",
-    "test:e2e:local": "node scripts/run-e2e-local.js"
+    "test:e2e:local": "node scripts/run-e2e-local.js",
+    "gen:pdf": "node scripts/generate-pdf.js"
   },
   "devDependencies": {
     "jest": "^29.0.0",
