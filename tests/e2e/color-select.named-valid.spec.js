@@ -1,12 +1,13 @@
 const puppeteer = require('puppeteer-core')
 const path = require('path')
+const { BASE_URL } = require('./helpers')
 
 describe('Color select - named valid', () => {
   test('CSS named color green', async () => {
     const execPath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
     const browser = await puppeteer.launch({ executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox'] })
     const page = await browser.newPage()
-    await page.goto('http://localhost:8000')
+    await page.goto(BASE_URL)
 
     await page.click('#drawCircleOn')
     await page.type('#colorName', 'green')
@@ -28,4 +29,3 @@ describe('Color select - named valid', () => {
     await browser.close()
   }, 20000)
 })
-

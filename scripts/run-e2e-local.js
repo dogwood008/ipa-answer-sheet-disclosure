@@ -3,7 +3,7 @@ const { spawn } = require('child_process')
 const path = require('path')
 
 const SERVER_DIR = path.resolve(__dirname, '../specs/001-a4-pdf-pdf/poc')
-const PORT = process.env.PORT || 8001
+const PORT = process.env.PORT || 8000
 
 function delay(ms){ return new Promise(res=>setTimeout(res, ms)) }
 
@@ -46,4 +46,3 @@ main().catch(err=>{
   console.error('[e2e-local] Failed:', err)
   process.exit(1)
 })
-

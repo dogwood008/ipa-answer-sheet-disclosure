@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-core')
 const path = require('path')
+const { BASE_URL } = require('./helpers')
 
 describe('Draw circle option', ()=>{
   test('selecting "draw" renders circle path', async()=>{
@@ -7,7 +8,7 @@ describe('Draw circle option', ()=>{
     const browser = await puppeteer.launch({executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox']})
     const page = await browser.newPage()
 
-    await page.goto('http://localhost:8000')
+    await page.goto(BASE_URL)
 
     // Select draw option
     await page.click('#drawCircleOn')
@@ -38,4 +39,3 @@ describe('Draw circle option', ()=>{
     await browser.close()
   }, 20000)
 })
-

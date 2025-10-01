@@ -44,8 +44,9 @@
    ```
 
 補足: 自動実行
-- `npm run test:e2e:local` を使うと、静的サーバ起動→E2E 実行→サーバ停止までを一括で行います。
+- `npm run test:e2e:local` を使うと、静的サーバ起動→E2E 実行→サーバ停止までを一括で行います（デフォルトポートは 8000）。
 - 必要に応じて `CHROME_PATH` を環境変数で指定してください（未指定時は `/usr/bin/chromium-browser` を既定とします）。
+ - ポートを変更したい場合は `PORT` を指定してください。例: `PORT=8001 npm run test:e2e:local`
 
 注: デモページは CDN（unpkg/cdnjs/Google Fonts）に依存します。オフライン環境では失敗します。
 
