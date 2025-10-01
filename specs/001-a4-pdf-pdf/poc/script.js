@@ -97,9 +97,11 @@ function setupColorControls(){
   }catch(err){ console.warn('Failed to setup color controls:', err) }
 }
 
+const HEIGHT_PT = 842
 const fieldMap = [
   // width is in PDF points, maxLines is integer
-  { key:'name', x: 218, y: 146, size: 14, type:'text', width: 386 - 146, maxLines: 2 },
+  { key:'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, type:'text', width: 386 - 146, maxLines: 2 },
+  { key:'name', x: 218, y: HEIGHT_PT - 162, size: 14, type:'text', width: 386 - 146, maxLines: 2 },
   { key:'examNumber', x: 420, y: 720, size: 12, type:'text', width: 120, maxLines: 1 }
 ]
 
@@ -125,6 +127,16 @@ function getDrawCircleOption(){
     const checked = document.querySelector('input[name="drawCircle"]:checked')
     return checked ? checked.value : 'nodraw'
   }catch(_){ return 'nodraw' }
+}
+
+// Rectangle parsing helper: returns { x,y,w,h, valid }
+function parseRectInputs(xv, yv, wv, hv){
+  const x = Number.parseFloat(xv)
+  const y = Number.parseFloat(yv)
+  const w = Number.parseFloat(wv)
+  const h = Number.parseFloat(hv)
+  const valid = Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
+  return { x, y, w, h, valid }
 }
 
 async function fetchArrayBuffer(url){
@@ -474,9 +486,10 @@ async function generate(){
   try{ if(typeof window !== 'undefined'){ window.__lastPdfColorRGB = { ...pdfRGB } } }catch(_){ }
 
     // collect input
+    const furigana = (document.getElementById('furigana')||{}).value || ''
     const name = document.getElementById('name').value
     const examNumber = document.getElementById('examNumber').value
-    const data = { name, examNumber }
+    const data = { furigana, name, examNumber }
 
     // Draw fields (use for..of so we can await inside the loop)
     for (const f of fieldMap) {
@@ -611,6 +624,38 @@ async function generate(){
       log('円の描画に失敗しました: '+(circleErr && circleErr.message))
     }
 
+    // Optional: draw a filled rectangle using pdf-lib when enabled
+    try{
+      const rectToggle = document.getElementById('drawRect')
+      const wantRect = !!(rectToggle && rectToggle.checked)
+      if (wantRect){
+        const rx = (document.getElementById('rectX')||{}).value
+        const ry = (document.getElementById('rectY')||{}).value
+        const rw = (document.getElementById('rectW')||{}).value
+        const rh = (document.getElementById('rectH')||{}).value
+        const parsed = parseRectInputs(rx, ry, rw, rh)
+        if(parsed.valid){
+          const selHex2 = (typeof __selectedColorHex === 'string') ? __selectedColorHex : '#000000'
+          const pdfRGB2 = hexToRgb01(selHex2)
+          if(typeof page.drawRectangle === 'function'){
+            page.drawRectangle({ x: parsed.x, y: parsed.y, width: parsed.w, height: parsed.h, color: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b) })
+          } else {
+            page.drawRectangle({ x: parsed.x, y: parsed.y, width: parsed.w, height: parsed.h, borderColor: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b), borderWidth: 1 })
+          }
+          try{ if(typeof window !== 'undefined'){ window.__rectDrawn = true; window.__lastRect = { x: parsed.x, y: parsed.y, w: parsed.w, h: parsed.h } } }catch(_){ }
+          log('矩形を描画しました')
+        } else {
+          try{ if(typeof window !== 'undefined'){ window.__rectDrawn = false } }catch(_){ }
+          log('矩形の入力が不正のため描画しませんでした')
+        }
+      } else {
+        try{ if(typeof window !== 'undefined'){ window.__rectDrawn = false } }catch(_){ }
+      }
+    }catch(rectErr){
+      console.warn('rectangle draw failed', rectErr)
+      log('矩形の描画に失敗しました: '+(rectErr && rectErr.message))
+    }
+
   const pdfBytes = await (docToSave||outDoc).save()
   try{
     // expose first bytes to test harness
@@ -659,6 +704,7 @@ if (typeof module !== 'undefined' && module.exports){
     loadFontFaceFromFile,
     normalizeHex,
     normalizeColor,
-    hexToRgb01
+    hexToRgb01,
+    parseRectInputs
   }
 }

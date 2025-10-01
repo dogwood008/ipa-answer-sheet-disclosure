@@ -28,6 +28,7 @@
   <h1>PoC: A4 PDF生成（IPA答案用紙）</h1>
   <p>テンプレートは実行時にIPAの公開URLから取得します。フォントはNoto Sansを試みます。簡易デモです。</p>
 
+  <label>ふりがな <input id="furigana" value="やまだ たろう" aria-label="ふりがな"></label>
   <label>氏名 <input id="name" value="山田 太郎"></label>
   <label>受験番号 <input id="examNumber" value="12345678"></label>
 
@@ -35,6 +36,15 @@
     <span style="margin-right:8px;">円の描画:</span>
     <label style="margin-right:8px;"><input type="radio" name="drawCircle" id="drawCircleOn" value="draw"> 描く</label>
     <label><input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked> 描かない</label>
+  </div>
+
+  <div id="rectOptions" style="margin:8px 0;">
+    <span style="margin-right:8px;">矩形の描画:</span>
+    <label style="margin-right:8px;"><input type="checkbox" id="drawRect"> 描く</label>
+    <label style="margin-right:8px;">x: <input id="rectX" type="number" value="50" style="width:80px"></label>
+    <label style="margin-right:8px;">y: <input id="rectY" type="number" value="60" style="width:80px"></label>
+    <label style="margin-right:8px;">width: <input id="rectW" type="number" value="100" style="width:80px"></label>
+    <label>height: <input id="rectH" type="number" value="80" style="width:80px"></label>
   </div>
 
   <button id="generate">PDF生成・プレビュー</button>
