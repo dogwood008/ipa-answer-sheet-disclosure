@@ -99,7 +99,7 @@ function setupColorControls(){
 
 const fieldMap = [
   // width is in PDF points, maxLines is integer
-  { key:'name', x: 50, y: 720, size: 14, type:'text', width: 300, maxLines: 2 },
+  { key:'name', x: 218, y: 146, size: 14, type:'text', width: 386 - 146, maxLines: 2 },
   { key:'examNumber', x: 420, y: 720, size: 12, type:'text', width: 120, maxLines: 1 }
 ]
 
