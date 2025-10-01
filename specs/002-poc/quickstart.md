@@ -1,28 +1,27 @@
-# Quickstart: E2E Test for the Rewritten PoC
+# Quickstart: 002-poc verification (Library-first + UI)
 
-This document outlines the end-to-end test scenario for verifying the rewritten application.
+このドキュメントは、002-poc の検証手順（ライブラリ→CLI→UI→E2E）を示します。現段階ではライブラリ/CLIを優先し、UIは最小構成を順次追加します。
 
-## Prerequisites
-- A running instance of the Vite development server.
-- A browser environment controllable by Puppeteer.
+## 1) Unit（ライブラリ）
+- 実行: `npm run test:unit`
+- 目的: `generateAnswerSheetPdf(config, data)` の入出力契約（必須項目、PDFヘッダ）を担保。
 
-## Test Scenario: Full user flow
+## 2) CLI（再現性のある生成導線）
+- コマンド: `npm run gen:pdf -- --input data.json --out out.pdf`
+- `data.json` 例:
+  ```json
+  { "name": "Taro", "examNumber": "AB1234" }
+  ```
+- 期待: リポジトリ直下に `out.pdf` が生成される。
 
-1.  **Given** the user navigates to the application's URL.
-2.  **Then** the main form is displayed with all input fields.
-3.  **When** the user fills in the form with valid data.
-4.  **And** the user clicks the "Generate PDF" button.
-5.  **Then** a preview of the generated PDF is displayed on the page.
-6.  **And** the PDF preview contains the data entered by the user in the correct positions.
-7.  **When** the user clicks the "Download PDF" button.
-8.  **Then** the generated PDF is downloaded to the user's computer.
+## 3) UI（最小React; 後続追加）
+- 目的: フォーム入力→生成→プレビュー/ダウンロードまでのフロー。
+- 現状: ディレクトリ骨組みを追加予定（`apps/002-poc`）。CDNに依存せずローカル静的配信で動作させる方針。
 
-## Automated Test Implementation
-This will be implemented using Jest and Puppeteer in the `frontend/tests/e2e/` directory. The test will:
-1.  Start the Vite dev server.
-2.  Launch a browser and navigate to the application.
-3.  Simulate user input into the form fields.
-4.  Click the generation button.
-5.  Wait for the PDF preview (e.g., in an `<iframe>` or `<embed>`) to be rendered.
-6.  (Future enhancement) Parse the downloaded PDF to verify its contents. For the initial implementation, we can check for the presence of the preview element and the download link.
-7.  Stop the Vite dev server.
+## 4) E2E（契約テスト）
+- 既存 `tests/e2e` を活用。ローカル静的サーバで配信し、Puppeteerから主要フローを検証。
+- 注意: オフライン環境で失敗しないようフォントはローカルTTF（`NotoSansJP-Regular.ttf`）を優先使用。
+
+## フォント方針（FR-009 準拠）
+- 原則: ローカル ttf/otf を埋め込み（例: リポジトリ直下または `assets/`）。
+- 例外: プレビュー専用でWebフォントを使う場合は明記し、ローカル代替を必ず提供。

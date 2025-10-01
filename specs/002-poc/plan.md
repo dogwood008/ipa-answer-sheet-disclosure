@@ -183,7 +183,7 @@ scripts/
 **Gate Status**:
 - [X] Initial Constitution Check: PASS（本計画で準拠）
 - [ ] Post-Design Constitution Check: PENDING（Phase 1完了後に再評価）
-- [ ] All NEEDS CLARIFICATION resolved
+- [X] All NEEDS CLARIFICATION resolved（FR-009: フォント戦略を明確化）
 - [ ] Complexity deviations documented
 
 ---
