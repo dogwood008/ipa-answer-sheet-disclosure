@@ -637,12 +637,18 @@ async function generate(){
         if(parsed.valid){
           const selHex2 = (typeof __selectedColorHex === 'string') ? __selectedColorHex : '#000000'
           const pdfRGB2 = hexToRgb01(selHex2)
+          // Convert y (given from top in UI) to PDF coordinate (from bottom)
+          let yBottom = parsed.y
+          try {
+            const size = typeof page.getSize === 'function' ? page.getSize() : { width: 595, height: 842 }
+            yBottom = size.height - parsed.y - parsed.h
+          } catch(_) { /* fallback to given value if size not available */ }
           if(typeof page.drawRectangle === 'function'){
-            page.drawRectangle({ x: parsed.x, y: parsed.y, width: parsed.w, height: parsed.h, color: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b) })
+            page.drawRectangle({ x: parsed.x, y: yBottom, width: parsed.w, height: parsed.h, color: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b) })
           } else {
-            page.drawRectangle({ x: parsed.x, y: parsed.y, width: parsed.w, height: parsed.h, borderColor: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b), borderWidth: 1 })
+            page.drawRectangle({ x: parsed.x, y: yBottom, width: parsed.w, height: parsed.h, borderColor: rgb(pdfRGB2.r, pdfRGB2.g, pdfRGB2.b), borderWidth: 1 })
           }
-          try{ if(typeof window !== 'undefined'){ window.__rectDrawn = true; window.__lastRect = { x: parsed.x, y: parsed.y, w: parsed.w, h: parsed.h } } }catch(_){ }
+          try{ if(typeof window !== 'undefined'){ window.__rectDrawn = true; window.__lastRect = { x: parsed.x, y: yBottom, w: parsed.w, h: parsed.h } } }catch(_){ }
           log('矩形を描画しました')
         } else {
           try{ if(typeof window !== 'undefined'){ window.__rectDrawn = false } }catch(_){ }
