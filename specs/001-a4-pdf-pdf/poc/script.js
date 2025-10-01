@@ -30,10 +30,19 @@ function namedToHex(name){
   if(NAMED_COLOR_HEX[key]) return NAMED_COLOR_HEX[key]
   try{
     const el = document.createElement('span')
+    // Isolate from page CSS so that global styles don't affect computed color
+    try { el.style.all = 'initial' } catch(_) { /* older browsers may not support 'all' */ }
+    el.style.position = 'fixed'
+    el.style.left = '-9999px'
+    el.style.top = '-9999px'
+    el.style.visibility = 'hidden'
+    el.style.display = 'block'
+    el.style.pointerEvents = 'none'
     el.style.color = key
-    document.body.appendChild(el)
+    const parent = document.body || document.documentElement
+    parent.appendChild(el)
     const rgbStr = getComputedStyle(el).color || ''
-    document.body.removeChild(el)
+    parent.removeChild(el)
     const m = rgbStr.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i)
     if(m){
       const r=parseInt(m[1],10), g=parseInt(m[2],10), b=parseInt(m[3],10)
