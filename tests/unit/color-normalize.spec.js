@@ -23,5 +23,23 @@ describe('color normalization utils', () => {
     expect(g).toBeCloseTo(0)
     expect(b).toBeCloseTo(0)
   })
-})
 
+  test('normalizeColor resolves named color via DOM/getComputedStyle mock (green → #008000)', () => {
+    const origDoc = global.document
+    const origGetCS = global.getComputedStyle
+    try{
+      // Minimal DOM shim for namedToHex
+      global.document = {
+        createElement: () => ({ style: {} }),
+        body: { appendChild: () => {}, removeChild: () => {} },
+        documentElement: { appendChild: () => {}, removeChild: () => {} },
+      }
+      global.getComputedStyle = () => ({ color: 'rgb(0, 128, 0)' })
+      const hex = mod.normalizeColor('green')
+      expect(hex).toBe('#008000')
+    } finally {
+      global.document = origDoc
+      global.getComputedStyle = origGetCS
+    }
+  })
+})
