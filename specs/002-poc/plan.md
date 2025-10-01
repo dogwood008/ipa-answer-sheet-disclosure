@@ -46,7 +46,16 @@ This feature involves rewriting the existing Proof of Concept (PoC) for the IPA 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-The project constitution at `.specify/memory/constitution.md` is currently a template with no specific principles defined. Therefore, there are no constitutional gates to check against at this time.
+Based on `.specify/memory/constitution.md` v1.0.0, this plan adheres to the following principles and constraints:
+
+- Library-first and small-surface design: PDF生成はReactに依存しない純TSライブラリとして`src/lib/pdf/`に実装し、`generateAnswerSheetPdf(config, data)`等の小さなAPIを公開。React側はそのライブラリを薄く呼び出すのみ。
+- Explicit Interfaces & Scriptability: 上記APIに加え、最小のnpmスクリプト（例: `npm run gen:pdf -- --input data.json --out out.pdf`）で再現可能なCLI導線を用意（Node実行が難しければ、代替として`scripts/`に小さなドライバを置く）。
+- Test-First (NON-NEGOTIABLE): ライブラリのユニットテストを先に追加→失敗を確認→実装→成功の順で進行。UIフローはE2Eでカバー。
+- Integration and Contract Testing: 「UIで入力→PDF生成→所定領域に期待テキスト/描画が存在」のE2E契約テストを追加。重要フローはエンドツーエンドで検証。
+- Observability, Versioning, Simplicity: PIIログは出力しない。APIはセマンティックバージョニングを前提に`0.x`→`1.0`で安定化を目指す。過度なインフラ/最適化は入れない。
+- Development Constraints: 言語はTypeScript。PDF処理は`pdf-lib`中心。フォントは可能な限りローカルttf/otf（同梱済み`NotoSansJP-Regular.ttf`を優先）、プレビュー用途でのみWebフォントを許容し、その前提をドキュメント化。
+
+Gate decision: PASS（上記の計画変更により準拠）。
 
 ## Project Structure
 
@@ -63,28 +72,44 @@ specs/002-poc/
 
 ### Source Code (repository root)
 ```
-# Option 2: Web application (when "frontend" + "backend" detected)
-frontend/
+src/
+├── lib/
+│   └── pdf/
+│       ├── index.ts            # generateAnswerSheetPdf(config, data) 他（純TS、UI非依存）
+│       └── fonts/              # 可能ならローカル埋め込みフォント
+└── index.ts                    # ライブラリエントリ
+
+apps/002-poc/                   # 最小のReactアプリ（Vite想定、ビルドは必要最小限）
 ├── src/
 │   ├── components/
 │   ├── pages/
-│   └── services/
-└── tests/
+│   └── app.tsx
+├── index.html
+└── vite.config.ts
+
+tests/
+├── unit/                       # ライブラリ用ユニットテスト（先に作る）
+└── e2e/                        # 既存E2Eに追従/最小追加
+
+scripts/
+└── generate-pdf.ts             # 簡易CLIドライバ（npm scriptから呼出）
 ```
 
-**Structure Decision**: Option 2: Web application. A new `frontend` directory will be created to house the React/TypeScript application.
+**Structure Decision**: Library-first。PDF生成は`src/lib/pdf`に実装し、Reactアプリは`apps/002-poc`で最小限。既存の`tests/`配下を活用し、E2Eは現行の手法に合わせる。
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
-   - Font handling in the new stack (Web fonts vs. embedding).
-   - Best practices for integrating `pdf-lib` with React and TypeScript.
-   - State management strategy for the React application.
+   - フォント戦略（ローカル埋め込みを優先、Webフォントはプレビュー用途で明示的許可）。
+   - `pdf-lib`のTS/React連携の最小実装（副作用/非同期の扱い、Blob/URL生成）。
+   - Reactの状態管理（Contextで十分か、Zustand/Jotaiの必要性評価）。
+   - 既存E2Eとの整合（ローカル静的配信とChromium起動、オフライン時のCDN依存排除）。
 
 2. **Generate and dispatch research agents**:
    ```
-   Task: "Research font handling strategies for pdf-lib in a web environment"
-   Task: "Find best practices for using pdf-lib with React hooks and TypeScript"
-   Task: "Evaluate state management libraries for a small React application (e.g., Zustand, Jotai, or React Context)"
+   Task: "pdf-libでのTrueType埋め込みとフォールバック（PNGレンダ）の可否と手順"
+   Task: "React+TSでのPDF生成副作用の最小化（hooks設計）"
+   Task: "小規模状態管理（Context vs Zustand/Jotai）の比較と採用基準"
+   Task: "オフラインでのプレビュー挙動（CDN排除/代替）の検証"
    ```
 
 3. **Consolidate findings** in `research.md`.
@@ -94,36 +119,38 @@ frontend/
 ## Phase 1: Design & Contracts
 *Prerequisites: research.md complete*
 
-1. **Extract entities from feature spec** → `data-model.md`:
-   - UserInput: { name: string, examNumber: string, ... }
-   - FieldMap: { [key: string]: { x: number, y: number, ... } }
+1. **Extract entities from feature spec** → `data-model.md`（テスト先行）:
+   - UserInput: { name: string, examNumber: string, ... }（ユニットテスト作成→失敗確認→実装）
+   - FieldMap: { [key: string]: { x: number, y: number, ... } }（同上）
 
-2. **Generate API contracts**:
-   - N/A for this client-side application.
+2. **Generate contracts**:
+   - UI/フロー契約: 「フォーム入力→生成→ダウンロード/プレビュー」
+   - PDF契約（最小）: 指定フィールドへのテキスト配置、フォント埋め込みの有無、用紙サイズ/座標系
 
 3. **Generate contract tests**:
-   - N/A
+   - E2E: 主要フロー（入力→PDF生成）を契約テストとして定義（PDFのテキスト/座標の一部検査）
+   - ユニット: `generateAnswerSheetPdf`の入出力契約（入力検証、エラー、成功時のメタデータ）
 
 4. **Extract test scenarios** from user stories:
-   - E2E test scenarios in `quickstart.md`.
+   - E2Eのシナリオを`quickstart.md`に明記（前提: ローカルフォント/オフライン動作方針）
 
 5. **Update agent file incrementally**:
    - N/A for this workflow.
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/*, failing tests（先行）, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
 *This section describes what the /tasks command will do - DO NOT execute during /plan*
 
 **Task Generation Strategy**:
-- Set up the Vite project with TypeScript and React.
-- Create React components for the form and PDF preview.
-- Implement the PDF generation logic in a service module.
-- Write unit tests for components and services.
-- Write E2E tests to cover the user flow.
+- ライブラリ（`src/lib/pdf`）のTDD（ユニットテスト→実装→リファクタ）
+- Reactアプリ（`apps/002-poc`）の最小構成（フォーム/プレビュー）
+- フォント埋め込みの実装とドキュメント化（ローカル優先）
+- CLI/スクリプト化（`scripts/generate-pdf.ts` + npm script）
+- E2E契約テスト（主要フロー、PDF検証の最小化）
 
 **Ordering Strategy**:
-- 1. Project setup. 2. PDF generation service. 3. UI components. 4. Integration and state management. 5. Tests.
+- 1. ユニットテスト雛形 → 2. ライブラリ実装 → 3. React UI最小 → 4. フォント/生成配線 → 5. CLI導線 → 6. E2E契約テスト
 
 **Estimated Output**: 15-20 tasks in tasks.md
 
@@ -154,10 +181,10 @@ frontend/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [X] Initial Constitution Check: PASS
-- [X] Post-Design Constitution Check: PASS
-- [X] All NEEDS CLARIFICATION resolved
+- [X] Initial Constitution Check: PASS（本計画で準拠）
+- [ ] Post-Design Constitution Check: PENDING（Phase 1完了後に再評価）
+- [ ] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/.specify/memory/constitution.md`*
+*Based on Constitution v1.0.0 - See `/.specify/memory/constitution.md`*
