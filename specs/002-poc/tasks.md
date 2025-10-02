@@ -24,7 +24,7 @@ Scope: Library-first、TDD、最小React、フォントはローカル埋め込�
  - [X] ローカル静的配信: 既存`tests/e2e`のサーバ起動フローに`apps/002-poc`の公開ディレクトリを追加（または相対パスで参照）。
  - [X] CHROME_PATH対応: E2Eで `CHROME_PATH` を環境変数から取得する前提を確認し、必要ならテスト/READMEに明記。
  - [X] ドキュメント更新: `quickstart.md` を最新手順（ユニット→CLI→UI→E2E）に更新し、フォント/PIIポリシーを追記。
-- [ ] 憲章 Gate: Post-Design Constitution Check を更新（契約テスト/PIIログなし/シンプル設計の確認）。
+ - [X] 憲章 Gate: Post-Design Constitution Check を更新（契約テスト/PIIログなし/シンプル設計の確認）。
 - [ ] 最終バリデーション: `npm test` と E2E のローカル自動実行（`npm run test:e2e:local`）でグリーンを確認。
 
 ## Notes
