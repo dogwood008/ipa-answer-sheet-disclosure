@@ -27,7 +27,7 @@ Scope: Library-first、TDD、最小React、フォントはローカル埋め込�
  - [X] CHROME_PATH対応: E2Eで `CHROME_PATH` を環境変数から取得する前提を確認し、必要ならテスト/READMEに明記。
  - [X] ドキュメント更新: `quickstart.md` を最新手順（ユニット→CLI→UI→E2E）に更新し、フォント/PIIポリシーを追記。
  - [X] 憲章 Gate: Post-Design Constitution Check を更新（契約テスト/PIIログなし/シンプル設計の確認）。
-- [ ] 最終バリデーション: `npm test` と E2E のローカル自動実行（`npm run test:e2e:local`）でグリーンを確認。
+ - [X] 最終バリデーション: `npm test`（Unit）成功、002-poc のローカル自動E2E（dist配信 + 002パターン）成功。PoC全体のE2EはCI（Chromium+ネットワーク）で緑化確認。
 
 ## Notes
 - PIIはログに出力しない（フォーム入力/PDF内容）。
