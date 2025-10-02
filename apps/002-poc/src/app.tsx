@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { generateAnswerSheetPdf } from './lib/generate'
 
 export default function App() {
   const [name, setName] = useState('');
@@ -8,7 +9,6 @@ export default function App() {
   const onGenerate = async () => {
     try {
       // Dynamic import from root library to keep duplication minimal
-      const { generateAnswerSheetPdf } = await import('../../../src/lib/pdf/index.js');
       const bytes = generateAnswerSheetPdf({}, { name, examNumber });
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const objectUrl = URL.createObjectURL(blob);

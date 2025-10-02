@@ -33,7 +33,11 @@ async function main(){
 
   console.log('[e2e-local] Running jest tests/e2e ...')
   const jestBin = path.resolve(__dirname, '../node_modules/.bin/jest')
-  const args = ['tests/e2e', '--runInBand', '--forceExit']
+  let testTarget = 'tests/e2e'
+  if (process.env.E2E_PATTERN) testTarget = process.env.E2E_PATTERN
+  else if (SERVER_DIR.includes('apps/002-poc') && SERVER_DIR.endsWith('dist')) testTarget = 'tests/e2e/002-poc.*.spec.js'
+
+  const args = [testTarget, '--runInBand', '--forceExit']
   if (process.env.DETECT_OPEN_HANDLES) args.push('--detectOpenHandles')
   const jest = spawn(jestBin, args, {
     stdio: 'inherit',
