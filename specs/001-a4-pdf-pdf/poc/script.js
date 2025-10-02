@@ -29,6 +29,8 @@ function namedToHex(name){
   const key = name.trim().toLowerCase()
   if(NAMED_COLOR_HEX[key]) return NAMED_COLOR_HEX[key]
   try{
+    // In non-browser environments (e.g., Node/Jest), DOM APIs are not available
+    if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') return null
     const el = document.createElement('span')
     // Isolate from page CSS so that global styles don't affect computed color
     try { el.style.all = 'initial' } catch(_) { /* older browsers may not support 'all' */ }
