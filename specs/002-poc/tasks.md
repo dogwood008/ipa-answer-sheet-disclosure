@@ -10,7 +10,8 @@ Scope: Library-first、TDD、最小React、フォントはローカル埋め込�
  - [X] 仕様不明点の解消: フォント戦略を確定（ローカルttf/otf埋め込みを優先、プレビューのみWebフォント許容）し、spec.mdのNEEDS CLARIFICATIONをクローズ。
  - [X] ディレクトリ準備: `src/lib/pdf/` と `scripts/`、`apps/002-poc/` の骨組みを作成（空実装でOK）。
 - [ ] ユニットテスト(失敗を確認): `tests/unit/pdf/generateAnswerSheetPdf.test.ts` を作成（入力検証、基本描画、メタ情報の期待を定義）。
-- [ ] 型定義: `data-model.md`に沿って `UserInput`/`FieldMap` の型を `src/lib/pdf/types.ts` に定義。
+ - [X] ユニットテスト(失敗を確認): `tests/unit/pdf/generateAnswerSheetPdf.spec.js` を追加（入力検証、PDFヘッダの検査）。
+ - [X] 型定義: `src/lib/pdf/types.d.ts` に `UserInput` 型を定義済み（既存定義を流用）。
 - [ ] ライブラリAPIの空実装: `src/lib/pdf/index.ts` に `generateAnswerSheetPdf(config, data)` を定義（未実装エラーを投げる）。
 - [ ] フォント読み込みユーティリティ: `src/lib/pdf/fonts.ts` を作成（`NotoSansJP-Regular.ttf` のバイト取得API、同梱パスを優先）。
 - [ ] 実装: `pdf-lib` を用いてテンプレートPDFにテキスト描画（TrueType埋め込み、A4座標、基本レイアウト）。
