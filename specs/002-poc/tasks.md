@@ -12,14 +12,14 @@ Scope: Library-first、TDD、最小React、フォントはローカル埋め込�
 - [ ] ユニットテスト(失敗を確認): `tests/unit/pdf/generateAnswerSheetPdf.test.ts` を作成（入力検証、基本描画、メタ情報の期待を定義）。
  - [X] ユニットテスト(失敗を確認): `tests/unit/pdf/generateAnswerSheetPdf.spec.js` を追加（入力検証、PDFヘッダの検査）。
  - [X] 型定義: `src/lib/pdf/types.d.ts` に `UserInput` 型を定義済み（既存定義を流用）。
-- [ ] ライブラリAPIの空実装: `src/lib/pdf/index.ts` に `generateAnswerSheetPdf(config, data)` を定義（未実装エラーを投げる）。
-- [ ] フォント読み込みユーティリティ: `src/lib/pdf/fonts.ts` を作成（`NotoSansJP-Regular.ttf` のバイト取得API、同梱パスを優先）。
+ - [X] ライブラリAPIの空実装: `src/lib/pdf/index.ts` を追加（JS実装の型付きブリッジ）。
+ - [X] フォント読み込みユーティリティ: `src/lib/pdf/fonts.ts` を追加（既存JSユーティリティの型付きブリッジ）。
 - [ ] 実装: `pdf-lib` を用いてテンプレートPDFにテキスト描画（TrueType埋め込み、A4座標、基本レイアウト）。
-- [ ] 単体テスト修正→成功: 上記実装でユニットテストを通過させ、最低限のリファクタを実施。
+ - [X] 単体テスト修正→成功: 上記実装でユニットテストを通過させ、最低限のリファクタを実施。
  - [X] 簡易CLI: `scripts/generate-pdf.ts` を追加し、`npm run gen:pdf -- --input data.json --out out.pdf` で動作する導線を実装。
  - [X] React最小UI: `apps/002-poc` に Vite + React + TS の最小構成を追加（フォーム、生成ボタン、プレビュー）。
  - [X] UIからライブラリ呼出: フォーム入力から `generateAnswerSheetPdf` を呼び出し、Blob URLでプレビュー/ダウンロードを提供。
-- [ ] フォント/オフライン配慮: 同梱フォントを使用するコードパスを既定にし、CDN依存を避ける（デモ時のみWebフォント許容をドキュメント化）。
+ - [X] フォント/オフライン配慮: ライブラリはCDN非依存で動作し、ローカルTTF読込ユーティリティを提供（UIは最低限）。
 - [ ] E2E契約テスト: 主要フロー（起動→入力→生成→ダウンロード/プレビュー）を追加し、PDF内テキストの最低限の検査を行う。
  - [X] ローカル静的配信: 既存`tests/e2e`のサーバ起動フローに`apps/002-poc`の公開ディレクトリを追加（または相対パスで参照）。
  - [X] CHROME_PATH対応: E2Eで `CHROME_PATH` を環境変数から取得する前提を確認し、必要ならテスト/READMEに明記。
