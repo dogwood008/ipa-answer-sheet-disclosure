@@ -2,7 +2,9 @@
 const { spawn } = require('child_process')
 const path = require('path')
 
-const SERVER_DIR = path.resolve(__dirname, '../specs/001-a4-pdf-pdf/poc')
+const SERVER_DIR = process.env.E2E_DIR
+  ? path.resolve(__dirname, '..', process.env.E2E_DIR)
+  : path.resolve(__dirname, '../specs/001-a4-pdf-pdf/poc')
 const PORT = process.env.PORT || 8000
 
 function delay(ms){ return new Promise(res=>setTimeout(res, ms)) }
@@ -31,7 +33,9 @@ async function main(){
 
   console.log('[e2e-local] Running jest tests/e2e ...')
   const jestBin = path.resolve(__dirname, '../node_modules/.bin/jest')
-  const jest = spawn(jestBin, ['tests/e2e', '--runInBand'], {
+  const args = ['tests/e2e', '--runInBand', '--forceExit']
+  if (process.env.DETECT_OPEN_HANDLES) args.push('--detectOpenHandles')
+  const jest = spawn(jestBin, args, {
     stdio: 'inherit',
     env,
   })

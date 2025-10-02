@@ -25,19 +25,17 @@ export default function App() {
     <div style={{ padding: 16, fontFamily: 'sans-serif' }}>
       <h1>IPA Answer Sheet Generator (002-poc)</h1>
       <div style={{ display: 'grid', gap: 8, maxWidth: 480 }}>
-        <label>
-          氏名
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          受験番号
-          <input value={examNumber} onChange={(e) => setExamNumber(e.target.value)} />
-        </label>
-        <button onClick={onGenerate}>PDFを生成</button>
+        <label htmlFor="name">氏名</label>
+        <input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+
+        <label htmlFor="examNumber">受験番号</label>
+        <input id="examNumber" value={examNumber} onChange={(e) => setExamNumber(e.target.value)} />
+
+        <button id="generate" onClick={onGenerate}>PDFを生成</button>
       </div>
       {url && (
         <div style={{ marginTop: 16 }}>
-          <a href={url} download="out.pdf">ダウンロード</a>
+          <a id="download" href={url} download="out.pdf">ダウンロード</a>
           <div style={{ marginTop: 8 }}>
             <iframe src={url} style={{ width: '100%', height: 600 }} />
           </div>

@@ -21,6 +21,10 @@
 - 配信: `cd apps/002-poc/dist && python3 -m http.server 8000`（別ターミナル）
 - アクセス: http://localhost:8000/
 
+ローカル自動E2E（推奨）
+- コマンド例: `PORT=8001 E2E_DIR=apps/002-poc/dist npm run test:e2e:local`
+- 備考: 既に:8000が使用中の場合はポートを変更してください。
+
 ## 4) E2E（契約テスト）
 - 既存 `tests/e2e` を活用。ローカル静的サーバで配信し、Puppeteerから主要フローを検証。
 - 注意: オフライン環境で失敗しないようフォントはローカルTTF（`NotoSansJP-Regular.ttf`）を優先使用。
