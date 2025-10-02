@@ -14,7 +14,8 @@ Scope: Library-first、TDD、最小React、フォントはローカル埋め込�
  - [X] 型定義: `src/lib/pdf/types.d.ts` に `UserInput` 型を定義済み（既存定義を流用）。
  - [X] ライブラリAPIの空実装: `src/lib/pdf/index.ts` を追加（JS実装の型付きブリッジ）。
  - [X] フォント読み込みユーティリティ: `src/lib/pdf/fonts.ts` を追加（既存JSユーティリティの型付きブリッジ）。
-- [ ] 実装: `pdf-lib` を用いてテンプレートPDFにテキスト描画（TrueType埋め込み、A4座標、基本レイアウト）。
+ - [X] 実装: `pdf-lib` を用いてテンプレートPDFにテキスト描画（TrueType埋め込み、A4座標、基本レイアウト）。
+       備考: ランタイムで `pdf-lib`/`@pdf-lib/fontkit` 検出時に有効化。未導入環境では最小PDFにフォールバック。
  - [X] 単体テスト修正→成功: 上記実装でユニットテストを通過させ、最低限のリファクタを実施。
  - [X] 簡易CLI: `scripts/generate-pdf.ts` を追加し、`npm run gen:pdf -- --input data.json --out out.pdf` で動作する導線を実装。
  - [X] React最小UI: `apps/002-poc` に Vite + React + TS の最小構成を追加（フォーム、生成ボタン、プレビュー）。

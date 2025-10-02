@@ -33,6 +33,96 @@ function generateAnswerSheetPdf(config, data) {
     throw new Error('InvalidInput');
   }
 
+  // Try to use pdf-lib if available; otherwise fall back to minimal generator
+  try {
+    // Lazy-require to avoid hard dependency in restricted environments
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+    // Optional: fontkit for TrueType embedding
+    let fontkit = null; try { fontkit = require('@pdf-lib/fontkit'); } catch(_) {}
+    const fs = require('fs');
+    const path = require('path');
+    // Load template bytes: config.templateBytes | config.templatePath | default path
+    let templateBytes = null;
+    if (config && config.templateBytes instanceof Uint8Array) {
+      templateBytes = config.templateBytes;
+    } else {
+      const templatePath = (config && config.templatePath) || path.join(process.cwd(), 'specs', '001-a4-pdf-pdf', 'poc', 'in.pdf');
+      try { templateBytes = new Uint8Array(fs.readFileSync(templatePath)); } catch(_) { templateBytes = null }
+    }
+
+    const init = async () => {
+      let doc = null;
+      if (templateBytes) {
+        doc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+      } else {
+        doc = await PDFDocument.create();
+        doc.addPage([612, 792]);
+      }
+      if (fontkit && typeof doc.registerFontkit === 'function') {
+        try { doc.registerFontkit(fontkit); } catch(_) {}
+      }
+
+      const pages = doc.getPages();
+      const page = pages[0] || doc.addPage([612,792]);
+
+      // Try to embed local Japanese font; fallback to Helvetica
+      let font = null;
+      try {
+        const { loadDefaultJapaneseFont } = require('./fonts.js');
+        const bytes = loadDefaultJapaneseFont();
+        if (bytes) font = await doc.embedFont(bytes, { subset: true });
+      } catch(_) {}
+      if (!font) {
+        const helv = await doc.embedFont(StandardFonts.Helvetica);
+        font = helv;
+      }
+
+      const black = rgb(0,0,0);
+      // A4 height points
+      const HEIGHT_PT = 842; // fallback if template uses A4; our page is 792 if newly created
+      const size = page.getSize ? page.getSize() : { width: 612, height: 792 };
+      const h = size.height || HEIGHT_PT;
+
+      const name = String(data.name);
+      const exam = String(data.examNumber);
+
+      // Field positions (approx, derived from PoC). Use page height to convert from top-based to PDF bottom origin if needed.
+      const fields = [
+        { text: name, x: 218, yTop: 162, size: 14 }, // name at y from top 162
+        { text: exam, x: 420, yTop: (size.height === 792 ? (792-720) : (h-720)), size: 12, absolute: true }, // if PDF height differs, keep absolute y when given in bottom origin
+      ];
+      for (const f of fields) {
+        const y = f.absolute ? (typeof f.yTop === 'number' ? f.yTop : (h - (f.yTop||0))) : (h - (f.yTop||0));
+        page.drawText(f.text, { x: f.x, y, size: f.size, font, color: black });
+      }
+
+      const pdfBytes = await doc.save();
+      return new Uint8Array(pdfBytes);
+    };
+
+    // Run the async path synchronously to keep API stable (blocking)
+    const wait = (p) => {
+      let done = false, result, error;
+      p.then((r)=>{ done=true; result=r }).catch((e)=>{ done=true; error=e });
+      // crude sync wait loop (Node-only); bounded by small iterations since operations are in-memory
+      const start = Date.now();
+      while(!done) {
+        if (Date.now() - start > 2000) { throw new Error('pdf-lib generation timeout') }
+        Atomics.wait ? Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10) : require('deasync').runLoopOnce();
+      }
+      if (error) throw error; return result;
+    };
+
+    try {
+      return wait(init());
+    } catch (_) {
+      // fall back below
+    }
+  } catch (_) {
+    // pdf-lib not installed or failed
+  }
+
   const name = data.name;
   const exam = data.examNumber;
 

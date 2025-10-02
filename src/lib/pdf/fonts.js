@@ -11,6 +11,7 @@ function loadDefaultJapaneseFont() {
   const candidates = [
     path.join(process.cwd(), 'NotoSansJP-Regular.ttf'),
     path.join(process.cwd(), 'assets', 'NotoSansJP-Regular.ttf'),
+    path.join(process.cwd(), 'specs', '001-a4-pdf-pdf', 'poc', 'NotoSansJP-Regular.ttf'),
   ];
   for (const p of candidates) {
     try {
@@ -24,4 +25,3 @@ function loadDefaultJapaneseFont() {
 }
 
 module.exports = { loadDefaultJapaneseFont };
-
