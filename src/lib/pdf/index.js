@@ -4,12 +4,42 @@
  * @typedef {Object} UserInput
  * @property {string} name
  * @property {string} examNumber
+ * @property {string} [furigana]
+ * @property {string} [color] - hex (#RRGGBB/#RGB) or named (black/red/green/blue/white)
+ * @property {boolean} [drawCircle]
+ * @property {{ enabled?: boolean, x:number, yTop:number, w:number, h:number }} [rect]
  */
 
 /**
  * @typedef {Object} GenerateConfig
- * @property {any} [template] - Reserved for future use (PDF template bytes/path)
+ * @property {any} [template] - Reserved for future use (compat)
+ * @property {Uint8Array} [templateBytes]
+ * @property {string} [templatePath]
  */
+
+const NAMED_COLOR_HEX = { black:'#000000', red:'#FF0000', green:'#008000', blue:'#0000FF', white:'#FFFFFF' };
+function normalizeHex(hex){
+  if(!hex || typeof hex !== 'string') return null;
+  const v = hex.trim();
+  if(!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) return null;
+  if(v.length === 4){ const r=v[1], g=v[2], b=v[3]; return ('#'+r+r+g+g+b+b).toUpperCase() }
+  return v.toUpperCase();
+}
+function normalizeColor(input){
+  if(typeof input !== 'string') return '#000000';
+  const t = input.trim();
+  const hx = normalizeHex(t); if(hx) return hx;
+  const nm = NAMED_COLOR_HEX[t.toLowerCase()]; if(nm) return nm;
+  return '#000000';
+}
+function hexToRgb01(hex){
+  const h = normalizeHex(hex) || '#000000';
+  return {
+    r: parseInt(h.slice(1,3),16)/255,
+    g: parseInt(h.slice(3,5),16)/255,
+    b: parseInt(h.slice(5,7),16)/255,
+  };
+}
 
 function pad10(n) {
   const s = String(n);
@@ -78,23 +108,81 @@ function generateAnswerSheetPdf(config, data) {
         font = helv;
       }
 
-      const black = rgb(0,0,0);
-      // A4 height points
-      const HEIGHT_PT = 842; // fallback if template uses A4; our page is 792 if newly created
       const size = page.getSize ? page.getSize() : { width: 612, height: 792 };
-      const h = size.height || HEIGHT_PT;
+      const pageH = size.height || 792;
+
+      // Resolve color
+      const hex = normalizeColor(data.color || '#000000');
+      const c = hexToRgb01(hex);
+      const col = rgb(c.r, c.g, c.b);
 
       const name = String(data.name);
       const exam = String(data.examNumber);
+      const furigana = data.furigana != null ? String(data.furigana) : '';
 
-      // Field positions (approx, derived from PoC). Use page height to convert from top-based to PDF bottom origin if needed.
-      const fields = [
-        { text: name, x: 218, yTop: 162, size: 14 }, // name at y from top 162
-        { text: exam, x: 420, yTop: (size.height === 792 ? (792-720) : (h-720)), size: 12, absolute: true }, // if PDF height differs, keep absolute y when given in bottom origin
-      ];
-      for (const f of fields) {
-        const y = f.absolute ? (typeof f.yTop === 'number' ? f.yTop : (h - (f.yTop||0))) : (h - (f.yTop||0));
-        page.drawText(f.text, { x: f.x, y, size: f.size, font, color: black });
+      // Layout helper similar to PoC: shrink-to-fit across maxLines and width
+      function drawWrappedText(text, x, yTop, sizePt, maxWidthPt, maxLines){
+        const y0 = pageH - yTop; // convert top-origin to PDF bottom-origin
+        if (!maxWidthPt || !font.widthOfTextAtSize){
+          page.drawText(text, { x, y: y0, size: sizePt, font, color: col });
+          return;
+        }
+        let pt = sizePt;
+        const minPt = 6;
+        const words = String(text).split(/(\s+)/);
+        const layout = (fs)=>{
+          const lines = [];
+          let cur = '';
+          for(const w of words){
+            const test = cur ? (cur + w) : w;
+            const width = font.widthOfTextAtSize(test, fs);
+            if(width <= maxWidthPt || cur === ''){ cur = test } else { lines.push(cur.trimEnd()); cur = w.trimStart() }
+          }
+          if(cur) lines.push(cur);
+          return lines;
+        };
+        let lines = layout(pt);
+        while(lines.length > (maxLines||1) && pt > minPt){ pt=Math.max(minPt, pt-1); lines = layout(pt) }
+        if(lines.length > (maxLines||1)){
+          lines = lines.slice(0, maxLines||1);
+          let last = lines[lines.length-1];
+          while(font.widthOfTextAtSize(last + '…', pt) > maxWidthPt && last.length>0){ last = last.slice(0, -1) }
+          lines[lines.length-1] = last + '…';
+        }
+        const leading = pt * 1.2;
+        for(let i=0;i<lines.length;i++){
+          page.drawText(lines[i], { x, y: y0 - i*leading, size: pt, font, color: col });
+        }
+      }
+
+      // Draw fields (positions ported from PoC)
+      drawWrappedText(furigana, 218, 146, 11, (386-146), 2);
+      drawWrappedText(name,     218, 162, 14, (386-146), 2);
+      // examNumber uses absolute bottom-origin y in PoC for 720 when page height=792; convert from top-origin for generality
+      page.drawText(exam, { x: 420, y: (pageH === 792 ? 720 : (pageH - (pageH-720))), size: 12, font, color: col });
+
+      // Optional circle
+      if (data.drawCircle) {
+        const cx = 100, cy = pageH - (pageH-680); // 680 from bottom in PoC
+        if (typeof page.drawCircle === 'function') {
+          page.drawCircle({ x: 100, y: 680, size: 10, borderColor: col, borderWidth: 1 });
+        } else if (typeof page.drawEllipse === 'function') {
+          page.drawEllipse({ x: 100, y: 680, xScale: 10, yScale: 10, borderColor: col, borderWidth: 1 });
+        }
+      }
+
+      // Optional rectangle
+      if (data.rect && (data.rect.enabled === undefined || !!data.rect.enabled)){
+        const rx = Number(data.rect.x)||0;
+        const ryTop = Number(data.rect.yTop)||0;
+        const rw = Number(data.rect.w)||0;
+        const rh = Number(data.rect.h)||0;
+        if (rw>0 && rh>0){
+          const ry = pageH - ryTop - rh;
+          if (typeof page.drawRectangle === 'function'){
+            page.drawRectangle({ x: rx, y: ry, width: rw, height: rh, borderColor: col, borderWidth: 1 });
+          }
+        }
       }
 
       const pdfBytes = await doc.save();
@@ -125,6 +213,8 @@ function generateAnswerSheetPdf(config, data) {
 
   const name = data.name;
   const exam = data.examNumber;
+  const furigana = data.furigana || '';
+  const hex = normalizeColor(data.color || '#000000');
 
   const chunks = [];
   let offset = 0;
@@ -154,11 +244,33 @@ function generateAnswerSheetPdf(config, data) {
   push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n');
   push('endobj\n');
 
-  // 5: Contents stream
-  const content = [
-    'BT /F1 16 Tf 72 720 Td (' + escapePdfString(name) + ') Tj ET\n',
-    'BT /F1 12 Tf 72 700 Td (' + escapePdfString(exam) + ') Tj ET\n',
-  ].join('');
+  // 5: Contents stream (very small: draw three text strings; optional simple rectangle/circle)
+  const toRGB = (h)=>{
+    const r = parseInt(h.slice(1,3),16)/255;
+    const g = parseInt(h.slice(3,5),16)/255;
+    const b = parseInt(h.slice(5,7),16)/255;
+    return `${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)}`;
+  };
+  const strokeRGB = toRGB(hex);
+  const contentParts = [];
+  contentParts.push(`BT /F1 11 Tf 218 ${842-146} Td (${escapePdfString(furigana)}) Tj ET\n`);
+  contentParts.push(`BT /F1 16 Tf 218 ${842-162} Td (${escapePdfString(name)}) Tj ET\n`);
+  contentParts.push(`BT /F1 12 Tf 420 720 Td (${escapePdfString(exam)}) Tj ET\n`);
+  // Optional rectangle
+  try{
+    if (data.rect && (data.rect.enabled === undefined || !!data.rect.enabled)){
+      const rx = Number(data.rect.x)||0;
+      const ryTop = Number(data.rect.yTop)||0;
+      const rw = Number(data.rect.w)||0;
+      const rh = Number(data.rect.h)||0;
+      if (rw>0 && rh>0){
+        const ry = 842 - ryTop - rh;
+        contentParts.push(`${strokeRGB} RG 1 w ${rx} ${ry} ${rw} ${rh} re S\n`);
+      }
+    }
+  }catch(_){}
+  // Note: circle drawing omitted in minimal path for simplicity
+  const content = contentParts.join('');
   const contentLen = Buffer.byteLength(content, 'utf8');
   const off5 = offset; push('5 0 obj\n');
   push('<< /Length ' + contentLen + ' >>\n');

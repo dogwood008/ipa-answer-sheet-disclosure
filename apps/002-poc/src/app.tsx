@@ -27,61 +27,12 @@ export default function App() {
       <button
         id="generate"
         onClick={() => {
-          // Immediate minimal blob to satisfy offline environments
-          try{
-            const name = (document.getElementById('name') as HTMLInputElement | null)?.value || ''
-            const exam = (document.getElementById('examNumber') as HTMLInputElement | null)?.value || ''
-            const enc = new TextEncoder()
-            const esc = (s: string)=> s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')
-            const pad10 = (n: number)=>{ const s=String(n); return s.length>=10?s:'0'.repeat(10-s.length)+s }
-            const chunks: string[] = []; let off=0; const push=(t:string)=>{ chunks.push(t); off += enc.encode(t).byteLength }
-            push('%PDF-1.4\n')
-            const off1=off; push('1 0 obj\n'); push('<< /Type /Catalog /Pages 2 0 R >>\n'); push('endobj\n')
-            const off2=off; push('2 0 obj\n'); push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n'); push('endobj\n')
-            const off3=off; push('3 0 obj\n'); push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\n'); push('endobj\n')
-            const off4=off; push('4 0 obj\n'); push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n'); push('endobj\n')
-            const content = `BT /F1 16 Tf 72 720 Td (${esc(name)}) Tj ET\nBT /F1 12 Tf 72 700 Td (${esc(exam)}) Tj ET\n`
-            const len = enc.encode(content).byteLength
-            const off5=off; push('5 0 obj\n'); push(`<< /Length ${len} >>\n`); push('stream\n'); push(content); push('endstream\n'); push('endobj\n')
-            const xref=off; push('xref\n'); push('0 6\n'); push('0000000000 65535 f \n'); push(`${pad10(off1)} 00000 n \n`); push(`${pad10(off2)} 00000 n \n`); push(`${pad10(off3)} 00000 n \n`); push(`${pad10(off4)} 00000 n \n`); push(`${pad10(off5)} 00000 n \n`)
-            push('trailer\n'); push('<< /Size 6 /Root 1 0 R >>\n'); push('startxref\n'); push(String(xref)+'\n'); push('%%EOF\n')
-            const blob = new Blob([enc.encode(chunks.join(''))], { type: 'application/pdf' })
-            const url = URL.createObjectURL(blob)
-            const a = document.getElementById('download') as HTMLAnchorElement | null
-            if (a){ a.href = url; a.download = 'ipa-filled.pdf'; a.style.pointerEvents='auto'; a.style.opacity='1' }
-            const ifr = document.getElementById('preview') as HTMLIFrameElement | null
-            if (ifr) ifr.src = url
-          }catch{ /* no-op */ }
           const w: any = window as any
-          if (w.generate) w.generate()
-          // Fallback: if no href set shortly after, generate a minimal PDF inline
-          setTimeout(() => {
-            const a = document.getElementById('download') as HTMLAnchorElement | null
-            const ok = a && a.getAttribute('href') && a.getAttribute('href')!.startsWith('blob:')
-            if (!ok) {
-              const name = (document.getElementById('name') as HTMLInputElement | null)?.value || ''
-              const exam = (document.getElementById('examNumber') as HTMLInputElement | null)?.value || ''
-              const enc = new TextEncoder()
-              const esc = (s: string)=> s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')
-              const pad10 = (n: number)=>{ const s=String(n); return s.length>=10?s:'0'.repeat(10-s.length)+s }
-              const chunks: string[] = []; let off=0; const push=(t:string)=>{ chunks.push(t); off += enc.encode(t).byteLength }
-              push('%PDF-1.4\n')
-              const off1=off; push('1 0 obj\n'); push('<< /Type /Catalog /Pages 2 0 R >>\n'); push('endobj\n')
-              const off2=off; push('2 0 obj\n'); push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n'); push('endobj\n')
-              const off3=off; push('3 0 obj\n'); push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\n'); push('endobj\n')
-              const off4=off; push('4 0 obj\n'); push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n'); push('endobj\n')
-              const content = `BT /F1 16 Tf 72 720 Td (${esc(name)}) Tj ET\nBT /F1 12 Tf 72 700 Td (${esc(exam)}) Tj ET\n`
-              const len = enc.encode(content).byteLength
-              const off5=off; push('5 0 obj\n'); push(`<< /Length ${len} >>\n`); push('stream\n'); push(content); push('endstream\n'); push('endobj\n')
-              const xref=off; push('xref\n'); push('0 6\n'); push('0000000000 65535 f \n'); push(`${pad10(off1)} 00000 n \n`); push(`${pad10(off2)} 00000 n \n`); push(`${pad10(off3)} 00000 n \n`); push(`${pad10(off4)} 00000 n \n`); push(`${pad10(off5)} 00000 n \n`)
-              push('trailer\n'); push('<< /Size 6 /Root 1 0 R >>\n'); push('startxref\n'); push(String(xref)+'\n'); push('%%EOF\n')
-              const blob = new Blob([enc.encode(chunks.join(''))], { type: 'application/pdf' })
-              const url = URL.createObjectURL(blob)
-              if (a){ a.href = url; a.download = 'ipa-filled.pdf'; a.style.pointerEvents='auto'; a.style.opacity='1' }
-              const ifr = document.getElementById('preview') as HTMLIFrameElement | null
-              if (ifr) ifr.src = url
-            }
-          }, 100)
+          if (w.generate) {
+            w.generate()
+          } else {
+            // Extreme fallback: do nothing to avoid overriding color-aware generator
+          }
         }}
       >
         PDF生成・プレビュー

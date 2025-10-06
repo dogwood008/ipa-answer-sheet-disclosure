@@ -279,8 +279,28 @@ async function renderFirstPageToPngViaPDFJS(arrayBuffer, scale=2){
   return { bytes: buf.buffer, width: canvas.width, height: canvas.height, widthPts: baseViewport.width, heightPts: baseViewport.height }
 }
 
+let __uiInited = false
+function ensureUiInit(){
+  if (__uiInited) return
+  try{ setupCircleRadioListener() }catch(_){}
+  try{ setupColorControls() }catch(_){}
+  __uiInited = true
+}
+
+function syncSelectedColorFromInputs(){
+  try{
+    const picker = document.getElementById('colorPicker')
+    const nameInput = document.getElementById('colorName')
+    const v = (picker && picker.value) ? picker.value : ((nameInput && nameInput.value) ? nameInput.value : null)
+    if (v){ setSelectedColor(String(v)) }
+  }catch(_){ }
+}
+
 async function generate(){
   try{
+    // Ensure UI listeners exist and sync the latest color value before generating
+    ensureUiInit()
+    syncSelectedColorFromInputs()
     // Fallback minimal PDF builder when pdf-lib is unavailable (offline/CDN blocked)
     function buildMinimalPdf(nameStr, examStr){
       function pad10(n){ const s=String(n); return s.length>=10?s:'0'.repeat(10-s.length)+s }
@@ -499,16 +519,16 @@ async function generate(){
 }
 
 const _genEl = (typeof document !== 'undefined') ? document.getElementById('generate') : null
-if(_genEl && typeof _genEl.addEventListener === 'function') _genEl.addEventListener('click', ()=>{generate()})
+if(_genEl && typeof _genEl.addEventListener === 'function') _genEl.addEventListener('click', ()=>{ ensureUiInit(); generate() })
 const _dlEl = (typeof document !== 'undefined') ? document.getElementById('download') : null
 if(_dlEl && typeof _dlEl.addEventListener === 'function') _dlEl.addEventListener('click', ()=>{})
 
 try{
   if (typeof document !== 'undefined'){
     if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', ()=>{ setupCircleRadioListener(); setupColorControls() })
+      document.addEventListener('DOMContentLoaded', ()=>{ ensureUiInit() })
     } else {
-      setupCircleRadioListener(); setupColorControls()
+      ensureUiInit()
     }
   }
 }catch(err){ console.warn('Failed to initialize listeners:', err) }
