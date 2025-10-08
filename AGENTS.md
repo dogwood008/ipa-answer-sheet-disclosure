@@ -20,7 +20,8 @@
 - 全テスト: `npm test`
 - Unit のみ: `npm run test:unit`
 - E2E のみ: `npm run test:e2e`
- - E2E（ローカル自動・推奨）: `npm run test:e2e:local`
+- E2E（ローカル自動・推奨）: `npm run test:e2e:local`
+- Lint: `npm run lint` / 自動修正: `npm run lint:fix`
 
 ## E2E 実行方法（ローカル）
 1) 静的サーバ起動（別ターミナル可）
