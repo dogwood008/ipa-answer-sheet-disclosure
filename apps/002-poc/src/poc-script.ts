@@ -390,3 +390,5 @@ try {
   document.addEventListener('change', (ev: any) => { const t = ev.target || {} as any; if (t && t.id === 'colorName') { try { setSelectedColor(String(t.value || '')) } catch { } } })
 } catch (e) { console.warn('init failed', e) }
 
+// Expose for existing onClick handlers (compat with previous global script)
+;(window as any).generate = generate
