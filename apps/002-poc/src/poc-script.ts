@@ -23,6 +23,12 @@ let PDFDocument: any, rgb: any, StandardFonts: any
 if (typeof PDFLib !== 'undefined' && PDFLib) { ({ PDFDocument, rgb, StandardFonts } = PDFLib) }
 else { PDFDocument = undefined; rgb = () => ({ r: 0, g: 0, b: 0 }); StandardFonts = {} }
 
+// Emit local TTF into dist and obtain its URL via Vite
+// Vite replaces ?url import with the final asset path at build time
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import notoAssetUrl from '../NotoSansJP-Regular.ttf?url'
+
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 const log = (s: string) => { try { const el = document.getElementById('log'); if (el) el.textContent += s + "\n" } catch { } }
 
@@ -290,7 +296,7 @@ export async function generate() {
         }
       } catch { }
       if (!font) {
-        const candidates = ['/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
+        const candidates = [notoAssetUrl, '/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
         for (const path of candidates) {
           try { const res = await fetch(path); if (res && res.ok) { const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); window.__embeddedFontEmbedded = true; window.__embeddedFontName = 'NotoSansJP-Regular.ttf'; break } } catch { }
         }
