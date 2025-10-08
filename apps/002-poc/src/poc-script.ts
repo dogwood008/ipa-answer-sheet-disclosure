@@ -347,16 +347,11 @@ export async function generate() {
           }
         } else if (f.type === 'check') {
           try {
-            if (!font) throw new Error('no font')
-            page.drawText('✔', { x: f.x, y: f.y, size: f.size, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
-          } catch {
-            try {
-              const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
-              const s = Math.max(0.5, f.size / 16)
-              page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
-              page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
-            } catch { }
-          }
+            const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
+            const s = Math.max(0.5, f.size / 16)
+            page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+            page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+          } catch { }
         }
       }
 
