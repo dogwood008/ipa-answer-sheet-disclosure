@@ -106,19 +106,23 @@ async function generate(){
     const fileInput=document.getElementById('templateFile')
     if(fileInput && fileInput.files && fileInput.files.length>0){ templateBytes=await readFileAsArrayBuffer(fileInput.files[0]) }
 
-    let sourceDoc=null
-    if (PDFDocument && templateBytes){ try{ sourceDoc = await PDFDocument.load(templateBytes,{ignoreEncryption:true}) }catch(e){ log('PDF読み込み失敗: '+e.message) } }
     const outDoc = PDFDocument ? await PDFDocument.create() : null
     let page=null
     if (PDFDocument){
-      try{
-        if (sourceDoc){ const [imported]=await outDoc.copyPages(sourceDoc,[0]); page=outDoc.addPage(imported) }
-        else { page=outDoc.addPage([612,792]) }
-      }catch(e){
+      if (templateBytes){
+        // Prefer PDF.js raster background to avoid pdf-lib parser warnings for complex/secured PDFs
         try{
-          if (templateBytes){ const DPI_SCALE=300/72; const bg=await renderFirstPageToPngViaPDFJS(templateBytes,DPI_SCALE); const bgImage=await outDoc.embedPng(bg.bytes); page=outDoc.addPage([bg.widthPts,bg.heightPts]); page.drawImage(bgImage,{x:0,y:0,width:bg.widthPts,height:bg.heightPts}) }
-        }catch(_){}
-        if(!page){ page = outDoc.addPage([612,792]) }
+          const DPI_SCALE = 300/72
+          const bg = await renderFirstPageToPngViaPDFJS(templateBytes, DPI_SCALE)
+          const bgImage = await outDoc.embedPng(bg.bytes)
+          page = outDoc.addPage([bg.widthPts, bg.heightPts])
+          page.drawImage(bgImage, { x: 0, y: 0, width: bg.widthPts, height: bg.heightPts })
+        }catch(e){
+          log('テンプレートのラスタ化に失敗: ' + (e && e.message));
+          page = outDoc.addPage([612,792])
+        }
+      } else {
+        page = outDoc.addPage([612,792])
       }
     }
 
