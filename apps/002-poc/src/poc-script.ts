@@ -94,16 +94,18 @@ function setupColorControls() {
 }
 
 const HEIGHT_PT = 842
-const fieldMap = [
-  { key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, type: 'text', width: 386 - 146, maxLines: 2 },
-  { key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, type: 'text', width: 386 - 146, maxLines: 2 },
-  { key: 'examNumber', x: 420, y: 720, size: 12, type: 'text', width: 120, maxLines: 1 },
-  { key: 'emojiCheck', x: 250, y: HEIGHT_PT - 150, size: 12, type: 'text', maxLines: 1 },
-] as const
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldCheck = { type: 'check'; x: number; y: number; size: number }
+type Field = FieldText | FieldCheck
+
+const fieldMap: Field[] = [
+  { type: 'text', key: 'furigana',  x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
+  { type: 'text', key: 'name',      x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
+  { type: 'text', key: 'examNumber',x: 420, y: 720,             size: 12, width: 120, maxLines: 1 },
+  { type: 'check', x: 140, y: 660, size: 16 },
+]
 
 const CIRCLE_POS = { x: 100, y: 680, r: 10 }
-// Fixed-position check mark (always rendered; no HTML input)
-const EMOJI_CHECK_POS = { x: 140, y: 660, size: 16 }
 function setupCircleRadioListener() {
   try {
     const radios = document.querySelectorAll('input[name="drawCircle"]')
@@ -306,47 +308,53 @@ export async function generate() {
     const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
 
     if (PDFDocument) {
-      for (const f of fieldMap as readonly any[]) {
-        const v = (textInputs as any)[f.key]; if (v == null) continue
-        const x = f.x, y = f.y
-        const tryPdfText = async () => {
-          if (!font) throw new Error('no font')
-          if (f.width) {
-            let pt = f.size; const minPt = 6; const maxW = f.width
-            const layout = (p: number) => { const words = String(v).split(/(\s+)/); const lines: string[] = []; let cur = ''; for (const w of words) { const test = cur ? (cur + w) : w; const m = font.widthOfTextAtSize(test, p); if (m <= maxW || cur === '') { cur = test } else { lines.push(cur.trimEnd()); cur = (w as string).trimStart() } } if (cur) lines.push(cur); return lines }
-            let lines = layout(pt); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layout(pt) }
-            if (lines.length > (f.maxLines || 1)) { lines = lines.slice(0, f.maxLines || 1); let last = lines[lines.length - 1]; while (font.widthOfTextAtSize(last + '…', pt) > maxW && last.length > 0) { last = last.slice(0, -1) } lines[lines.length - 1] = last + '…' }
-            const leading = pt * 1.2
-            for (let i = 0; i < lines.length; i++) { page.drawText(lines[i], { x, y: y - i * leading, size: pt, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) }) }
-          } else {
-            page.drawText(String(v), { x, y, size: f.size, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
+      for (const f of fieldMap) {
+        if (f.type === 'text') {
+          const v = (textInputs as any)[f.key]; if (v == null) continue
+          const x = f.x, y = f.y
+          const tryPdfText = async () => {
+            if (!font) throw new Error('no font')
+            if (f.width) {
+              let pt = f.size; const minPt = 6; const maxW = f.width
+              const layout = (p: number) => { const words = String(v).split(/(\s+)/); const lines: string[] = []; let cur = ''; for (const w of words) { const test = cur ? (cur + w) : w; const m = font.widthOfTextAtSize(test, p); if (m <= maxW || cur === '') { cur = test } else { lines.push(cur.trimEnd()); cur = (w as string).trimStart() } } if (cur) lines.push(cur); return lines }
+              let lines = layout(pt); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layout(pt) }
+              if (lines.length > (f.maxLines || 1)) { lines = lines.slice(0, f.maxLines || 1); let last = lines[lines.length - 1]; while (font.widthOfTextAtSize(last + '…', pt) > maxW && last.length > 0) { last = last.slice(0, -1) } lines[lines.length - 1] = last + '…' }
+              const leading = pt * 1.2
+              for (let i = 0; i < lines.length; i++) { page.drawText(lines[i], { x, y: y - i * leading, size: pt, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) }) }
+            } else {
+              page.drawText(String(v), { x, y, size: f.size, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
+            }
           }
-        }
-        try { if (font) { await tryPdfText() } else { throw new Error('no-embedded-font') } }
-        catch {
-          const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
-          const px = Math.round(f.size * PIXELS_PER_POINT)
-          const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
-          const png = renderTextToPngBytes(String(v), family, px, maxWidthPx, f.maxLines || 1, __selectedColorHex)
+          try { if (font) { await tryPdfText() } else { throw new Error('no-embedded-font') } }
+          catch {
+            const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
+            const px = Math.round(f.size * PIXELS_PER_POINT)
+            const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
+            const png = renderTextToPngBytes(String(v), family, px, maxWidthPx, f.maxLines || 1, __selectedColorHex)
+            try {
+              const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, png)
+              const ascentPts = (png.ascentPx != null ? png.ascentPx : Math.round(px * 0.86)) / PIXELS_PER_POINT
+              const topPaddingPts = (png.paddingTop || 0) / PIXELS_PER_POINT
+              const topY = y - (ascentPts + topPaddingPts)
+              page.drawImage(pngImage, { x, y: topY, width: widthPts, height: heightPts })
+            } catch { }
+          }
+        } else if (f.type === 'check') {
           try {
-            const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, png)
-            const ascentPts = (png.ascentPx != null ? png.ascentPx : Math.round(px * 0.86)) / PIXELS_PER_POINT
-            const topPaddingPts = (png.paddingTop || 0) / PIXELS_PER_POINT
-            const topY = y - (ascentPts + topPaddingPts)
-            page.drawImage(pngImage, { x, y: topY, width: widthPts, height: heightPts })
-          } catch { }
+            if (!font) throw new Error('no font')
+            page.drawText('✔', { x: f.x, y: f.y, size: f.size, font, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
+          } catch {
+            try {
+              const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
+              const s = Math.max(0.5, f.size / 16)
+              page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+              page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+            } catch { }
+          }
         }
       }
 
-      // Draw fixed-position emoji check (✔) as vector when possible
-      // Fallback to vector path: draw a simple check mark with two lines
-      try {
-        const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
-        const x = EMOJI_CHECK_POS.x, y = EMOJI_CHECK_POS.y
-        const t = Math.max(1, Math.min(2.4, EMOJI_CHECK_POS.size / 10))
-        page.drawLine({ start: { x: x - 3, y: y + 2 }, end: { x: x + 1, y: y - 4 }, thickness: t, color: colorV })
-        page.drawLine({ start: { x: x + 1, y: y - 4 }, end: { x: x + 10, y: y + 6 }, thickness: t, color: colorV })
-      } catch {}
+      // (check marks are handled via fieldMap entries of type 'check')
 
       try {
         const opt = getDrawCircleOption();
