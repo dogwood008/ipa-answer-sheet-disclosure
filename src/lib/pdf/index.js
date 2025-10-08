@@ -163,11 +163,11 @@ function generateAnswerSheetPdf(config, data) {
 
       // Optional circle
       if (data.drawCircle) {
-        const cx = 100, cy = pageH - (pageH-680); // 680 from bottom in PoC
+        const cx = 100, cy = pageH - (pageH - 680); // 680 from bottom in PoC
         if (typeof page.drawCircle === 'function') {
-          page.drawCircle({ x: 100, y: 680, size: 10, borderColor: col, borderWidth: 1 });
+          page.drawCircle({ x: cx, y: cy, size: 10, borderColor: col, borderWidth: 1 });
         } else if (typeof page.drawEllipse === 'function') {
-          page.drawEllipse({ x: 100, y: 680, xScale: 10, yScale: 10, borderColor: col, borderWidth: 1 });
+          page.drawEllipse({ x: cx, y: cy, xScale: 10, yScale: 10, borderColor: col, borderWidth: 1 });
         }
       }
 

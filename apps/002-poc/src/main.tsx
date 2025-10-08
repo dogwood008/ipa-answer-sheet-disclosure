@@ -6,4 +6,4 @@ const root = createRoot(document.getElementById('root')!);
 root.render(<App />);
 
 // Load PoC logic (TS) after React mounts so it can bind to elements
-import('./poc-script');
+void import('./poc-script');

@@ -17,11 +17,13 @@ module.exports = {
     '**/dist/',
     'coverage/',
     '.specify/',
+    'specs/**',
   ],
   overrides: [
     // TypeScript files
     {
       files: ['**/*.ts', '**/*.tsx'],
+      excludedFiles: ['**/*.d.ts'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
         tsconfigRootDir: __dirname,
@@ -48,14 +50,19 @@ module.exports = {
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
-      rules: {},
+      rules: {
+        // Allow intentionally empty catch blocks common in PoC scripts
+        'no-empty': ['error', { allowEmptyCatch: true }],
+      },
     },
     // Test files (Jest)
     {
       files: ['tests/**/*.*'],
-      env: { jest: true, node: true },
-      rules: {},
+      env: { jest: true, node: true, browser: true },
+      rules: {
+        'no-unused-vars': 'off',
+        'no-empty': ['error', { allowEmptyCatch: true }],
+      },
     },
   ],
 };
-

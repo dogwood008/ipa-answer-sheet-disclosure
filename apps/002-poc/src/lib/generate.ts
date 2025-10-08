@@ -8,7 +8,7 @@ function esc(s: string): string {
   return String(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')
 }
 
-export function generateAnswerSheetPdf(_config: any, data: UserInput): Uint8Array {
+export function generateAnswerSheetPdf(_config: unknown, data: UserInput): Uint8Array {
   if (!data || typeof data.name !== 'string' || typeof data.examNumber !== 'string') {
     throw new Error('InvalidInput')
   }

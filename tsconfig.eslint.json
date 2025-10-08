@@ -1,12 +1,18 @@
 {
-  "extends": "./apps/002-poc/tsconfig.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "moduleResolution": "Bundler",
+    "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["vite/client"]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "src/**/*.d.ts",
     "apps/**/*.ts",
     "apps/**/*.tsx",
     "tests/**/*.ts",
@@ -18,4 +24,3 @@
     "**/dist"
   ]
 }
-

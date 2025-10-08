@@ -27,9 +27,9 @@ export default function App() {
       <button
         id="generate"
         onClick={() => {
-          const w: any = window as any
-          if (w.generate) {
-            w.generate()
+          const w = window as unknown as { generate?: () => void | Promise<void> }
+          if (typeof w.generate === 'function') {
+            void w.generate()
           } else {
             // Extreme fallback: do nothing to avoid overriding color-aware generator
           }
