@@ -98,9 +98,12 @@ const fieldMap = [
   { key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, type: 'text', width: 386 - 146, maxLines: 2 },
   { key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, type: 'text', width: 386 - 146, maxLines: 2 },
   { key: 'examNumber', x: 420, y: 720, size: 12, type: 'text', width: 120, maxLines: 1 },
+  { key: 'emojiCheck', x: 250, y: HEIGHT_PT - 150, size: 12, type: 'text', maxLines: 1 },
 ] as const
 
 const CIRCLE_POS = { x: 100, y: 680, r: 10 }
+// Fixed-position check mark (always rendered; no HTML input)
+const EMOJI_CHECK_POS = { x: 140, y: 660, size: 16 }
 function setupCircleRadioListener() {
   try {
     const radios = document.querySelectorAll('input[name="drawCircle"]')
@@ -334,6 +337,16 @@ export async function generate() {
           } catch { }
         }
       }
+
+      // Draw fixed-position emoji check (✔) as vector when possible
+      // Fallback to vector path: draw a simple check mark with two lines
+      try {
+        const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
+        const x = EMOJI_CHECK_POS.x, y = EMOJI_CHECK_POS.y
+        const t = Math.max(1, Math.min(2.4, EMOJI_CHECK_POS.size / 10))
+        page.drawLine({ start: { x: x - 3, y: y + 2 }, end: { x: x + 1, y: y - 4 }, thickness: t, color: colorV })
+        page.drawLine({ start: { x: x + 1, y: y - 4 }, end: { x: x + 10, y: y + 6 }, thickness: t, color: colorV })
+      } catch {}
 
       try {
         const opt = getDrawCircleOption();
