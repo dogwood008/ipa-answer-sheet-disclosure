@@ -229,4 +229,20 @@ async function generate(){
 try{
   const btn=document.getElementById('generate'); if(btn) btn.addEventListener('click',()=>{ ensureUiInit(); generate() })
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>ensureUiInit()); else ensureUiInit()
+  // Event delegation so that presets work regardless of mount timing
+  document.addEventListener('click', (ev)=>{
+    const t = ev.target && ev.target.closest ? ev.target.closest('button, a, input, span') : null
+    if(!t) return
+    const id = t.id || ''
+    if (id === 'presetBlack') { setSelectedColor('#000000') }
+    else if (id === 'presetRed') { setSelectedColor('#FF0000') }
+  })
+  document.addEventListener('input', (ev)=>{
+    const t = ev.target || {}
+    if (t && t.id === 'colorPicker') { try{ setSelectedColor(t.value) }catch(_){} }
+  })
+  document.addEventListener('change', (ev)=>{
+    const t = ev.target || {}
+    if (t && t.id === 'colorName') { try{ setSelectedColor(String(t.value||'')) }catch(_){} }
+  })
 }catch(e){ console.warn('init failed', e) }
