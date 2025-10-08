@@ -50,9 +50,9 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, m
   const ctx = canvas.getContext('2d');
   if(!ctx){
     const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
-    const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return buf.buffer;
+    const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return { bytes: buf.buffer, widthPx: 1, heightPx: 1, ascentPx: 0, padding: 0 };
   }
-  const padding = 4;
+  const padding = 10; // generous to avoid clipping ascenders
   ctx.fillStyle = colorHex;
   let fontPx = fontSizePx;
   ctx.textBaseline = 'top';
@@ -95,9 +95,10 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, m
   ctx.fillStyle = colorHex; ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
   for(let i=0;i<lines.length;i++){ ctx.fillText(lines[i], padding, padding + i * Math.ceil(fontPx * 1.3)) }
   const dataUrl = canvas.toDataURL('image/png');
-  const base64 = dataUrl.split(',')[1]; const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return buf.buffer;
+  const base64 = dataUrl.split(',')[1]; const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i);
+  return { bytes: buf.buffer, widthPx: width, heightPx: height, ascentPx: Math.round(fontPx*0.8), padding };
 }
-async function embedPngBytesAsPdfImage(targetDoc, pngBytes){ const pngImage = await targetDoc.embedPng(pngBytes); const widthPts = pngImage.width / PIXELS_PER_POINT; const heightPts = pngImage.height / PIXELS_PER_POINT; return { pngImage, widthPts, heightPts } }
+async function embedPngBytesAsPdfImage(targetDoc, png){ const pngImage = await targetDoc.embedPng(png.bytes); const widthPts = pngImage.width / PIXELS_PER_POINT; const heightPts = pngImage.height / PIXELS_PER_POINT; return { pngImage, widthPts, heightPts } }
 
 async function generate(){
   try{
@@ -169,14 +170,17 @@ async function generate(){
           if (uploadedFontFamily || isAscii) { await tryPdfText() } else { throw new Error('non-ansi without embedded font') }
         }catch(_e){
           // Raster fallback for non-encodable text
-          const family = uploadedFontFamily || notoFontFamily || 'NotoSansJP, system-ui, sans-serif'
+          const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
           const px = Math.round(f.size * PIXELS_PER_POINT)
           const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
-          const pngBuf = renderTextToPngBytes(String(v), family, px, maxWidthPx, f.maxLines||1, __selectedColorHex)
+          const png = renderTextToPngBytes(String(v), family, px, maxWidthPx, f.maxLines||1, __selectedColorHex)
           try{
-            const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, pngBuf)
-            // Align top-left approximately to (x, y)
-            page.drawImage(pngImage, { x, y: y - heightPts + (px*0.2/PDF_DPI*72), width: widthPts, height: heightPts })
+            const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, png)
+            // Align so that the first line baseline roughly matches (x,y)
+            const ascentPts = (png.ascentPx != null ? png.ascentPx : Math.round(px*0.8)) / PIXELS_PER_POINT
+            const topPaddingPts = (png.padding || 0) / PIXELS_PER_POINT
+            const topY = y - (ascentPts + topPaddingPts)
+            page.drawImage(pngImage, { x, y: topY, width: widthPts, height: heightPts })
           }catch(err){ /* give up silently */ }
         }
       }
