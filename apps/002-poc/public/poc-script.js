@@ -147,13 +147,23 @@ async function generate(){
     let uploadedFontFamily = null
     let notoFontFamily = null
     if (PDFDocument){
+      try{ if (typeof fontkit !== 'undefined' && typeof outDoc.registerFontkit === 'function') outDoc.registerFontkit(fontkit) }catch(_){ }
       try{
         const fontInput=document.getElementById('fontFile')
         if(fontInput && fontInput.files && fontInput.files.length>0){
-          const fontBytes=await readFileAsArrayBuffer(fontInput.files[0]); font=await outDoc.embedFont(fontBytes); try{ window.__embeddedFontEmbedded=true }catch(_){}
+          const fontBytes=await readFileAsArrayBuffer(fontInput.files[0])
+          font=await outDoc.embedFont(fontBytes)
+          try{ window.__embeddedFontEmbedded=true }catch(_){}
           try{ uploadedFontFamily = await loadFontFaceFromFile(fontInput.files[0]) }catch(_){ }
         }
       }catch(_){ }
+      // Try built-in default Japanese font from public if no upload
+      if(!font){
+        const candidates = ['/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
+        for(const path of candidates){
+          try{ const res = await fetch(path); if(res && res.ok){ const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); try{ window.__embeddedFontEmbedded=true; window.__embeddedFontName='NotoSansJP-Regular.ttf' }catch(_){ } break } }catch(_){ }
+        }
+      }
       if(!font){ try{ font = await outDoc.embedFont(StandardFonts.Helvetica) }catch(_){ } }
       if(!uploadedFontFamily){ try{ notoFontFamily = await loadNotoFromGoogleFonts() }catch(_){ } }
     }
@@ -167,7 +177,6 @@ async function generate(){
       for(const f of fieldMap){
         const v = textInputs[f.key]; if(v==null) continue
         const x=f.x; const y=f.y
-        const isAscii = /^[\x00-\x7F]*$/.test(String(v))
         const tryPdfText = async () => {
           if(!font) throw new Error('no font')
           if(f.width){
@@ -182,7 +191,7 @@ async function generate(){
           }
         }
         try{
-          if (uploadedFontFamily || isAscii) { await tryPdfText() } else { throw new Error('non-ansi without embedded font') }
+          if (font) { await tryPdfText() } else { throw new Error('no-embedded-font') }
         }catch(_e){
           // Raster fallback for non-encodable text
           const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
