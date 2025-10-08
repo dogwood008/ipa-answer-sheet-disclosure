@@ -50,12 +50,12 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, m
   const ctx = canvas.getContext('2d');
   if(!ctx){
     const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
-    const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return { bytes: buf.buffer, widthPx: 1, heightPx: 1, ascentPx: 0, padding: 0 };
+    const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return { bytes: buf.buffer, widthPx: 1, heightPx: 1, ascentPx: 0, paddingTop: 0 };
   }
-  const padding = 10; // generous to avoid clipping ascenders
+  const sidePadding = 10;
   ctx.fillStyle = colorHex;
   let fontPx = fontSizePx;
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = 'alphabetic';
   if(!maxWidthPx){ maxWidthPx = Math.round(fontPx * 20) }
   function layoutLinesForFontSize(fs){
     ctx.font = `${fs}px "${fontFamily}", sans-serif`;
@@ -65,7 +65,7 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, m
     for (const w of words){
       const test = cur ? (cur + w) : w;
       const m = ctx.measureText(test);
-      if (m.width + padding*2 <= maxWidthPx || cur === ''){
+      if (m.width + sidePadding*2 <= maxWidthPx || cur === ''){
         cur = test;
       } else {
         lines.push(cur.trimEnd());
@@ -83,20 +83,35 @@ function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, m
     const last = lines[lines.length-1];
     ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
     let truncated = last;
-    while(ctx.measureText(truncated + '…').width + padding*2 > maxWidthPx && truncated.length>0){ truncated = truncated.slice(0, -1) }
+    while(ctx.measureText(truncated + '…').width + sidePadding*2 > maxWidthPx && truncated.length>0){ truncated = truncated.slice(0, -1) }
     lines[lines.length-1] = truncated + '…';
   }
   ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
-  let maxW = 0; for(const l of lines){ const m = ctx.measureText(l); if(m.width > maxW) maxW = m.width }
-  const width = Math.ceil(maxW) + padding*2;
-  const height = Math.ceil(fontPx * 1.3 * lines.length) + padding*2;
+  let maxW = 0, maxAsc = 0, maxDesc = 0;
+  for(const l of lines){
+    const m = ctx.measureText(l);
+    if(m.width > maxW) maxW = m.width;
+    const asc = Number.isFinite(m.actualBoundingBoxAscent) ? m.actualBoundingBoxAscent : fontPx * 0.88;
+    const desc = Number.isFinite(m.actualBoundingBoxDescent) ? m.actualBoundingBoxDescent : fontPx * 0.26;
+    if (asc > maxAsc) maxAsc = asc;
+    if (desc > maxDesc) maxDesc = desc;
+  }
+  const lineH = Math.max(Math.ceil(fontPx * 1.3), Math.ceil((maxAsc + maxDesc) * 1.05));
+  const paddingTop = Math.max(sidePadding, Math.ceil(maxAsc * 0.25) + 6);
+  const width = Math.ceil(maxW) + sidePadding*2;
+  const height = paddingTop + (lineH * lines.length) + sidePadding;
   canvas.width = width; canvas.height = height;
   ctx.clearRect(0,0,width,height);
   ctx.fillStyle = colorHex; ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
-  for(let i=0;i<lines.length;i++){ ctx.fillText(lines[i], padding, padding + i * Math.ceil(fontPx * 1.3)) }
+  ctx.textBaseline = 'alphabetic';
+  const baselineY0 = paddingTop + maxAsc;
+  for(let i=0;i<lines.length;i++){
+    const y = baselineY0 + i * lineH;
+    ctx.fillText(lines[i], sidePadding, y)
+  }
   const dataUrl = canvas.toDataURL('image/png');
   const base64 = dataUrl.split(',')[1]; const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i);
-  return { bytes: buf.buffer, widthPx: width, heightPx: height, ascentPx: Math.round(fontPx*0.8), padding };
+  return { bytes: buf.buffer, widthPx: width, heightPx: height, ascentPx: Math.round(maxAsc), paddingTop };
 }
 async function embedPngBytesAsPdfImage(targetDoc, png){ const pngImage = await targetDoc.embedPng(png.bytes); const widthPts = pngImage.width / PIXELS_PER_POINT; const heightPts = pngImage.height / PIXELS_PER_POINT; return { pngImage, widthPts, heightPts } }
 
@@ -177,8 +192,8 @@ async function generate(){
           try{
             const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, png)
             // Align so that the first line baseline roughly matches (x,y)
-            const ascentPts = (png.ascentPx != null ? png.ascentPx : Math.round(px*0.8)) / PIXELS_PER_POINT
-            const topPaddingPts = (png.padding || 0) / PIXELS_PER_POINT
+            const ascentPts = (png.ascentPx != null ? png.ascentPx : Math.round(px*0.86)) / PIXELS_PER_POINT
+            const topPaddingPts = (png.paddingTop || 0) / PIXELS_PER_POINT
             const topY = y - (ascentPts + topPaddingPts)
             page.drawImage(pngImage, { x, y: topY, width: widthPts, height: heightPts })
           }catch(err){ /* give up silently */ }
