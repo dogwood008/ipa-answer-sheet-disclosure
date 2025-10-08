@@ -44,6 +44,61 @@ let __uiInited=false
 function ensureUiInit(){ if(__uiInited) return; try{ setupCircleRadioListener() }catch(_){}; try{ setupColorControls() }catch(_){}; __uiInited=true }
 function syncSelectedColorFromInputs(){ try{ const picker=document.getElementById('colorPicker'); const nameInput=document.getElementById('colorName'); const v=(picker&&picker.value)?picker.value:((nameInput&&nameInput.value)?nameInput.value:null); if(v) setSelectedColor(String(v)) }catch(_){} }
 
+// Canvas text rasterize helper (with wrapping/shrink and color)
+function renderTextToPngBytes(text, fontFamily, fontSizePx, maxWidthPx = null, maxLines = 1, colorHex = '#000000'){
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if(!ctx){
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+    const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return buf.buffer;
+  }
+  const padding = 4;
+  ctx.fillStyle = colorHex;
+  let fontPx = fontSizePx;
+  ctx.textBaseline = 'top';
+  if(!maxWidthPx){ maxWidthPx = Math.round(fontPx * 20) }
+  function layoutLinesForFontSize(fs){
+    ctx.font = `${fs}px "${fontFamily}", sans-serif`;
+    const words = String(text).split(/(\s+)/);
+    const lines = [];
+    let cur = '';
+    for (const w of words){
+      const test = cur ? (cur + w) : w;
+      const m = ctx.measureText(test);
+      if (m.width + padding*2 <= maxWidthPx || cur === ''){
+        cur = test;
+      } else {
+        lines.push(cur.trimEnd());
+        cur = w.trimStart();
+      }
+    }
+    if(cur) lines.push(cur);
+    return lines;
+  }
+  let lines = layoutLinesForFontSize(fontPx);
+  const minFontPx = 8;
+  while(lines.length > maxLines && fontPx > minFontPx){ fontPx = Math.max(minFontPx, fontPx - 1); lines = layoutLinesForFontSize(fontPx) }
+  if(lines.length > maxLines){
+    lines = lines.slice(0, maxLines);
+    const last = lines[lines.length-1];
+    ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
+    let truncated = last;
+    while(ctx.measureText(truncated + '…').width + padding*2 > maxWidthPx && truncated.length>0){ truncated = truncated.slice(0, -1) }
+    lines[lines.length-1] = truncated + '…';
+  }
+  ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
+  let maxW = 0; for(const l of lines){ const m = ctx.measureText(l); if(m.width > maxW) maxW = m.width }
+  const width = Math.ceil(maxW) + padding*2;
+  const height = Math.ceil(fontPx * 1.3 * lines.length) + padding*2;
+  canvas.width = width; canvas.height = height;
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle = colorHex; ctx.font = `${fontPx}px "${fontFamily}", sans-serif`;
+  for(let i=0;i<lines.length;i++){ ctx.fillText(lines[i], padding, padding + i * Math.ceil(fontPx * 1.3)) }
+  const dataUrl = canvas.toDataURL('image/png');
+  const base64 = dataUrl.split(',')[1]; const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for(let i=0;i<len;i++) buf[i]=binary.charCodeAt(i); return buf.buffer;
+}
+async function embedPngBytesAsPdfImage(targetDoc, pngBytes){ const pngImage = await targetDoc.embedPng(pngBytes); const widthPts = pngImage.width / PIXELS_PER_POINT; const heightPts = pngImage.height / PIXELS_PER_POINT; return { pngImage, widthPts, heightPts } }
+
 async function generate(){
   try{
     ensureUiInit(); syncSelectedColorFromInputs()
@@ -69,14 +124,18 @@ async function generate(){
 
     // font
     let font = null
+    let uploadedFontFamily = null
+    let notoFontFamily = null
     if (PDFDocument){
       try{
         const fontInput=document.getElementById('fontFile')
         if(fontInput && fontInput.files && fontInput.files.length>0){
           const fontBytes=await readFileAsArrayBuffer(fontInput.files[0]); font=await outDoc.embedFont(fontBytes); try{ window.__embeddedFontEmbedded=true }catch(_){}
+          try{ uploadedFontFamily = await loadFontFaceFromFile(fontInput.files[0]) }catch(_){ }
         }
       }catch(_){ }
       if(!font){ try{ font = await outDoc.embedFont(StandardFonts.Helvetica) }catch(_){ } }
+      if(!uploadedFontFamily){ try{ notoFontFamily = await loadNotoFromGoogleFonts() }catch(_){ } }
     }
 
     const textInputs={ furigana:(document.getElementById('furigana')||{}).value, name:(document.getElementById('name')||{}).value, examNumber:(document.getElementById('examNumber')||{}).value }
@@ -88,15 +147,33 @@ async function generate(){
       for(const f of fieldMap){
         const v = textInputs[f.key]; if(v==null) continue
         const x=f.x; const y=f.y
-        if(font && f.width){
-          let pt=f.size; const minPt=6; const maxW=f.width
-          const layout=(p)=>{ const words=String(v).split(/(\s+)/); const lines=[]; let cur=''; for(const w of words){ const test=cur?(cur+w):w; const m=font.widthOfTextAtSize(test,p); if(m<=maxW||cur===''){cur=test}else{lines.push(cur.trimEnd()); cur=w.trimStart()} } if(cur) lines.push(cur); return lines }
-          let lines=layout(pt); while(lines.length>(f.maxLines||1)&&pt>minPt){ pt=Math.max(minPt,pt-1); lines=layout(pt) }
-          if(lines.length>(f.maxLines||1)){ lines=lines.slice(0,f.maxLines||1); let last=lines[lines.length-1]; while(font.widthOfTextAtSize(last+'…',pt)>maxW && last.length>0){ last=last.slice(0,-1) } lines[lines.length-1]=last+'…' }
-          const leading=pt*1.2
-          for(let i=0;i<lines.length;i++){ page.drawText(lines[i],{ x, y:y - i*leading, size:pt, font, color: rgb(pdfRGB.r,pdfRGB.g,pdfRGB.b) }) }
-        } else {
-          page.drawText(String(v),{ x, y, size:f.size, font, color: rgb(pdfRGB.r,pdfRGB.g,pdfRGB.b) })
+        const isAscii = /^[\x00-\x7F]*$/.test(String(v))
+        const tryPdfText = async () => {
+          if(!font) throw new Error('no font')
+          if(f.width){
+            let pt=f.size; const minPt=6; const maxW=f.width
+            const layout=(p)=>{ const words=String(v).split(/(\s+)/); const lines=[]; let cur=''; for(const w of words){ const test=cur?(cur+w):w; const m=font.widthOfTextAtSize(test,p); if(m<=maxW||cur===''){cur=test}else{lines.push(cur.trimEnd()); cur=w.trimStart()} } if(cur) lines.push(cur); return lines }
+            let lines=layout(pt); while(lines.length>(f.maxLines||1)&&pt>minPt){ pt=Math.max(minPt,pt-1); lines=layout(pt) }
+            if(lines.length>(f.maxLines||1)){ lines=lines.slice(0,f.maxLines||1); let last=lines[lines.length-1]; while(font.widthOfTextAtSize(last+'…',pt)>maxW && last.length>0){ last=last.slice(0,-1) } lines[lines.length-1]=last+'…' }
+            const leading=pt*1.2
+            for(let i=0;i<lines.length;i++){ page.drawText(lines[i],{ x, y:y - i*leading, size:pt, font, color: rgb(pdfRGB.r,pdfRGB.g,pdfRGB.b) }) }
+          } else {
+            page.drawText(String(v),{ x, y, size:f.size, font, color: rgb(pdfRGB.r,pdfRGB.g,pdfRGB.b) })
+          }
+        }
+        try{
+          if (uploadedFontFamily || isAscii) { await tryPdfText() } else { throw new Error('non-ansi without embedded font') }
+        }catch(_e){
+          // Raster fallback for non-encodable text
+          const family = uploadedFontFamily || notoFontFamily || 'NotoSansJP, system-ui, sans-serif'
+          const px = Math.round(f.size * PIXELS_PER_POINT)
+          const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
+          const pngBuf = renderTextToPngBytes(String(v), family, px, maxWidthPx, f.maxLines||1, __selectedColorHex)
+          try{
+            const { pngImage, widthPts, heightPts } = await embedPngBytesAsPdfImage(outDoc, pngBuf)
+            // Align top-left approximately to (x, y)
+            page.drawImage(pngImage, { x, y: y - heightPts + (px*0.2/PDF_DPI*72), width: widthPts, height: heightPts })
+          }catch(err){ /* give up silently */ }
         }
       }
 
@@ -149,4 +226,3 @@ try{
   const btn=document.getElementById('generate'); if(btn) btn.addEventListener('click',()=>{ ensureUiInit(); generate() })
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>ensureUiInit()); else ensureUiInit()
 }catch(e){ console.warn('init failed', e) }
-
