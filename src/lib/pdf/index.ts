@@ -1,13 +1,30 @@
 import type { GenerateConfig, UserInput } from './types'
 
-// Bridge to the JS implementation to avoid duplication while providing TS types
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { generateAnswerSheetPdf: impl } = require('./index.js') as {
-  generateAnswerSheetPdf: (config: GenerateConfig, data: UserInput) => Uint8Array
+let impl: ((config: GenerateConfig, data: UserInput) => Uint8Array) | undefined
+
+async function loadImpl(): Promise<(config: GenerateConfig, data: UserInput) => Uint8Array> {
+  if (impl) return impl
+  try {
+    const mod: unknown = await import('./index.js')
+    if (
+      typeof mod !== 'object' ||
+      mod === null ||
+      !('generateAnswerSheetPdf' in mod) ||
+      typeof (mod as Record<string, unknown>).generateAnswerSheetPdf !== 'function'
+    ) {
+      throw new Error('generateAnswerSheetPdf is not a function in ./index.js')
+    }
+    impl = (mod as { generateAnswerSheetPdf: (config: GenerateConfig, data: UserInput) => Uint8Array }).generateAnswerSheetPdf
+    return impl
+  } catch (err) {
+    throw new Error(`Failed to load generateAnswerSheetPdf implementation: ${String(err)}`)
+  }
 }
 
-export function generateAnswerSheetPdf(config: GenerateConfig, data: UserInput): Uint8Array {
-  return impl(config, data)
+export async function generateAnswerSheetPdf(
+  config: GenerateConfig,
+  data: UserInput
+): Promise<Uint8Array> {
+  const fn = await loadImpl()
+  return fn(config, data)
 }
