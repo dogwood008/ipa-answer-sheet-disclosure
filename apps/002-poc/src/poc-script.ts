@@ -293,7 +293,7 @@ export async function generate() {
         const fontInput = document.getElementById('fontFile') as HTMLInputElement | null
         if (fontInput && fontInput.files && fontInput.files.length > 0) {
           const fontBytes = await readFileAsArrayBuffer(fontInput.files[0]); font = await outDoc.embedFont(fontBytes); window.__embeddedFontEmbedded = true
-          try { uploadedFontFamily = await loadFontFaceFromFile(fontInput.files[0]) } catch { }
+          try { uploadedFontFamily = await loadFontFaceFromFile(fontInput.files[0]) } catch { console.warn('Ignore font face loading errors; fallback font will be used') }
         }
       } catch { }
       if (!font) {
