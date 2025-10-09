@@ -30,6 +30,10 @@ else { PDFDocument = undefined; rgb = () => ({ r: 0, g: 0, b: 0 }); StandardFont
 // @ts-ignore
 import notoAssetUrl from '../NotoSansJP-Regular.ttf?url'
 
+// Check that the font asset URL is present; log an error if missing
+if (!notoAssetUrl) {
+  console.error('Error: NotoSansJP-Regular.ttf asset not found at build time. PDF generation may fail.');
+}
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 const log = (s: string) => { try { const el = document.getElementById('log'); if (el) el.textContent += s + "\n" } catch { } }
 
