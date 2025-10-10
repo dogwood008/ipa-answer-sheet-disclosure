@@ -1,12 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/require-await, @typescript-eslint/no-floating-promises */
 /*
   TS port of public/poc-script.js with minimal typing.
-  Depends on global UMD: PDFLib, pdfjsLib, fontkit (loaded in index.html).
+  依存ライブラリは npm 経由で取り込み（Vite でバンドル）。
 */
 
-declare const PDFLib: any
-declare const pdfjsLib: any
-declare const fontkit: any
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
+import * as pdfjsLib from 'pdfjs-dist'
+// Vite の worker URL 取り込み（PDF.js ワーカー設定）
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
+// PDF.js にワーカーのURLを通知
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
 declare global {
   interface Window {
@@ -19,10 +26,6 @@ declare global {
     __lastRect?: { x: number; y: number; w: number; h: number }
   }
 }
-
-let PDFDocument: any, rgb: any, StandardFonts: any
-if (typeof PDFLib !== 'undefined' && PDFLib) { ({ PDFDocument, rgb, StandardFonts } = PDFLib) }
-else { PDFDocument = undefined; rgb = () => ({ r: 0, g: 0, b: 0 }); StandardFonts = {} }
 
 // Emit local TTF into dist and obtain its URL via Vite
 // Vite replaces ?url import with the final asset path at build time
