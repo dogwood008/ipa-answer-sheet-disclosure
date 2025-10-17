@@ -1,11 +1,9 @@
 const puppeteer = require('puppeteer-core')
-const path = require('path')
-const { BASE_URL } = require('./helpers')
+const { BASE_URL, resolveChromiumExecutable, resolveFixturePath } = require('./helpers')
 
 describe('Rectangle draw - valid', ()=>{
   test('draws rectangle with given dimensions', async()=>{
-    const execPath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
-    const browser = await puppeteer.launch({executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox']})
+    const browser = await puppeteer.launch({executablePath: resolveChromiumExecutable(), args:['--no-sandbox','--disable-setuid-sandbox']})
     const page = await browser.newPage()
     await page.goto(BASE_URL)
 
@@ -20,9 +18,9 @@ describe('Rectangle draw - valid', ()=>{
     await page.$eval('#rectH', (el)=> el.value = '')
     await page.type('#rectH','80')
 
-    const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')
+    const templatePath = resolveFixturePath('in.pdf')
     await (await page.$('#templateFile')).uploadFile(templatePath)
-    const fontPath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/NotoSansJP-Regular.ttf')
+    const fontPath = resolveFixturePath('NotoSansJP-Regular.ttf')
     await (await page.$('#fontFile')).uploadFile(fontPath)
 
     await page.click('#generate')

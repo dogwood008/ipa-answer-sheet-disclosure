@@ -1,11 +1,9 @@
 const puppeteer = require('puppeteer-core')
-const path = require('path')
-const { BASE_URL } = require('./helpers')
+const { BASE_URL, resolveChromiumExecutable, resolveFixturePath } = require('./helpers')
 
 describe('Draw circle option', ()=>{
   test('selecting "draw" renders circle path', async()=>{
-    const execPath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
-    const browser = await puppeteer.launch({executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox']})
+    const browser = await puppeteer.launch({executablePath: resolveChromiumExecutable(), args:['--no-sandbox','--disable-setuid-sandbox']})
     const page = await browser.newPage()
 
     await page.goto(BASE_URL)
@@ -14,11 +12,11 @@ describe('Draw circle option', ()=>{
     await page.click('#drawCircleOn')
 
     // Upload local template and font to avoid network
-    const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')
+    const templatePath = resolveFixturePath('in.pdf')
     const input = await page.$('#templateFile')
     if(input) await input.uploadFile(templatePath)
 
-    const fontPath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/NotoSansJP-Regular.ttf')
+    const fontPath = resolveFixturePath('NotoSansJP-Regular.ttf')
     const fontInput = await page.$('#fontFile')
     if(fontInput) await fontInput.uploadFile(fontPath)
 

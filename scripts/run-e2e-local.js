@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const { spawn } = require('child_process')
 const path = require('path')
+const { resolveChromiumExecutable } = require('../tests/e2e/helpers')
 
 const SERVER_DIR = path.resolve(__dirname, '../specs/001-a4-pdf-pdf/poc')
 const PORT = process.env.PORT || 8000
@@ -8,7 +9,16 @@ const PORT = process.env.PORT || 8000
 function delay(ms){ return new Promise(res=>setTimeout(res, ms)) }
 
 async function main(){
-  const chromePath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
+  let chromePath = process.env.CHROME_PATH
+  if (!chromePath) {
+    try {
+      chromePath = resolveChromiumExecutable()
+    } catch (err) {
+      console.error('[e2e-local] Chromium executable not found. Set CHROME_PATH or install chromium.', err)
+      process.exit(1)
+    }
+  }
+
   const env = { ...process.env, CHROME_PATH: chromePath }
 
   console.log(`[e2e-local] Starting static server at ${SERVER_DIR} on :${PORT}`)
