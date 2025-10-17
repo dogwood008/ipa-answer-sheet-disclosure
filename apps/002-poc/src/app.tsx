@@ -351,23 +351,33 @@ export default function App() {
     <div style={{ padding: 20, fontFamily: 'system-ui, sans-serif' }}>
       <h1>PoC: A4 PDF生成（IPA答案用紙） - 002 React</h1>
 
-      <label>ふりがな <input id="furigana" ref={furiganaRef} defaultValue="やまだ たろう" aria-label="ふりがな" /></label>
-      <label>氏名 <input id="name" ref={nameRef} defaultValue="山田 太郎" /></label>
-      <label>受験番号 <input id="examNumber" ref={examRef} defaultValue="12345678" /></label>
+      <label htmlFor="furigana">ふりがな</label>
+      <input id="furigana" ref={furiganaRef} defaultValue="やまだ たろう" />
+      <label htmlFor="name">氏名</label>
+      <input id="name" ref={nameRef} defaultValue="山田 太郎" />
+      <label htmlFor="examNumber">受験番号</label>
+      <input id="examNumber" ref={examRef} defaultValue="12345678" />
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
-        <label style={{ marginRight: 8 }}><input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle==='draw'} onChange={()=>setDrawCircle('draw')} /> 描く</label>
-        <label><input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle==='nodraw'} onChange={()=>setDrawCircle('nodraw')} /> 描かない</label>
+        <input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle==='draw'} onChange={()=>setDrawCircle('draw')} />
+        <label htmlFor="drawCircleOn" style={{ marginRight: 8 }}>描く</label>
+        <input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle==='nodraw'} onChange={()=>setDrawCircle('nodraw')} />
+        <label htmlFor="drawCircleOff">描かない</label>
       </div>
 
       <div id="rectOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>矩形の描画:</span>
-        <label style={{ marginRight: 8 }}><input type="checkbox" id="drawRect" checked={drawRect} onChange={(e)=>setDrawRect(e.target.checked)} /> 描く</label>
-        <label style={{ marginRight: 8 }}>x: <input id="rectX" ref={rectXRef} type="number" defaultValue={50} style={{ width: 80 }} /></label>
-        <label style={{ marginRight: 8 }}>y(上から): <input id="rectY" ref={rectYRef} type="number" defaultValue={60} style={{ width: 80 }} /></label>
-        <label style={{ marginRight: 8 }}>width: <input id="rectW" ref={rectWRef} type="number" defaultValue={100} style={{ width: 80 }} /></label>
-        <label>height: <input id="rectH" ref={rectHRef} type="number" defaultValue={80} style={{ width: 80 }} /></label>
+        <input type="checkbox" id="drawRect" checked={drawRect} onChange={(e)=>setDrawRect(e.target.checked)} />
+        <label htmlFor="drawRect" style={{ marginRight: 8 }}>描く</label>
+        <label htmlFor="rectX" style={{ marginRight: 8 }}>x:</label>
+        <input id="rectX" ref={rectXRef} type="number" defaultValue={50} style={{ width: 80, marginRight: 8 }} />
+        <label htmlFor="rectY" style={{ marginRight: 8 }}>y(上から):</label>
+        <input id="rectY" ref={rectYRef} type="number" defaultValue={60} style={{ width: 80, marginRight: 8 }} />
+        <label htmlFor="rectW" style={{ marginRight: 8 }}>width:</label>
+        <input id="rectW" ref={rectWRef} type="number" defaultValue={100} style={{ width: 80, marginRight: 8 }} />
+        <label htmlFor="rectH" style={{ marginRight: 8 }}>height:</label>
+        <input id="rectH" ref={rectHRef} type="number" defaultValue={80} style={{ width: 80 }} />
       </div>
 
       <button id="generate" onClick={handleGenerate}>PDF生成・プレビュー</button>
@@ -382,11 +392,11 @@ export default function App() {
         </div>
         <div style={{ marginBottom: 6 }}>
           <label htmlFor="colorPicker"><strong>カラーピッカー:</strong></label>
-          <input id="colorPicker" type="color" value={selectedColor} onChange={handleColorPicker} aria-label="カラーピッカー" />
+          <input id="colorPicker" type="color" value={selectedColor} onChange={handleColorPicker} />
         </div>
         <div style={{ marginBottom: 6 }}>
           <label htmlFor="colorName"><strong>CSS 色名:</strong></label>
-          <input id="colorName" type="text" placeholder="例: green" onChange={handleColorName} aria-label="CSS 色名入力" />
+          <input id="colorName" type="text" placeholder="例: green" onChange={handleColorName} />
         </div>
         <div>
           <span>選択中の色プレビュー: </span>
@@ -399,8 +409,10 @@ export default function App() {
       <p>
         <a id="templateLink" href="https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf" target="_blank" rel="noopener">IPAテンプレートをこのリンクからダウンロード</a>
       </p>
-      <label>またはローカルに保存したテンプレートPDFを選択: <input id="templateFile" type="file" accept="application/pdf" onChange={(e)=> setTemplateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} /></label>
-      <label style={{ display: 'block', marginTop: 6 }}>フォントファイル（日本語対応：.ttf/.otf）を選択: <input id="fontFile" type="file" accept="font/ttf,font/otf,.ttf,.otf" onChange={(e)=> setFontFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} /></label>
+      <label htmlFor="templateFile">またはローカルに保存したテンプレートPDFを選択:</label>
+      <input id="templateFile" type="file" accept="application/pdf" onChange={(e)=> setTemplateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+      <label htmlFor="fontFile" style={{ display: 'block', marginTop: 6 }}>フォントファイル（日本語対応：.ttf/.otf）を選択:</label>
+      <input id="fontFile" type="file" accept="font/ttf,font/otf,.ttf,.otf" onChange={(e)=> setFontFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
 
       <h3>プレビュー</h3>
       <iframe id="preview" ref={previewRef} style={{ width: '100%', height: 600, border: '1px solid #ddd' }} title="preview" />
