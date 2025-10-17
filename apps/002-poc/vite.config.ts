@@ -23,7 +23,9 @@ function copyNotoTtfPlugin(): Plugin {
             res.setHeader('Content-Type', 'font/ttf')
             fs.createReadStream(p).pipe(res)
             return
-          } catch {}
+          } catch (e) {
+            console.error(e)
+          }
         }
         next()
       })
