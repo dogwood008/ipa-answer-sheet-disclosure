@@ -29,7 +29,7 @@ module.exports = {
         tsconfigRootDir: __dirname,
         project: [
           './tsconfig.eslint.json',
-          './apps/002-poc/tsconfig.json',
+          './apps/**/tsconfig.json',
         ],
         ecmaVersion: 'latest',
         sourceType: 'module',
