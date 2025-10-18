@@ -18,16 +18,19 @@ function parseArgs(argv) {
   return args;
 }
 
-function main() {
+async function main() {
   const { generateAnswerSheetPdf } = require('../src/lib/pdf/index.js');
   const args = parseArgs(process.argv);
   const json = JSON.parse(fs.readFileSync(path.resolve(args.input), 'utf8'));
-  const bytes = generateAnswerSheetPdf({}, json);
+  const bytes = await generateAnswerSheetPdf({}, json);
   fs.writeFileSync(path.resolve(args.out), Buffer.from(bytes));
   console.log(`Wrote ${args.out} (${bytes.byteLength} bytes)`);
 }
 
 if (require.main === module) {
-  main();
+  main().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
 }
 
