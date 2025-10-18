@@ -9,12 +9,36 @@ async function launchBrowser() {
   const page = await browser.newPage()
 
   async function close() {
+    const proc = typeof browser.process === 'function' ? browser.process() : null
+    try {
+      if (!page.isClosed()) {
+        await page.close({ runBeforeUnload: false }).catch((err) => {
+          if (process.env.DEBUG) {
+            console.error('[e2e] Failed to close page', err)
+          }
+        })
+      }
+    } catch (err) {
+      if (process.env.DEBUG) {
+        console.error('[e2e] Unexpected error while closing page', err)
+      }
+    }
+
     try {
       await browser.close()
     } catch (err) {
-      // Swallow errors on close to avoid masking earlier test failures
       if (process.env.DEBUG) {
         console.error('[e2e] Failed to close browser', err)
+      }
+    } finally {
+      if (proc && proc.exitCode === null) {
+        try {
+          proc.kill('SIGKILL')
+        } catch (err) {
+          if (process.env.DEBUG) {
+            console.error('[e2e] Failed to kill browser process', err)
+          }
+        }
       }
     }
   }
