@@ -5,7 +5,7 @@ let impl: ((config: GenerateConfig, data: UserInput) => Uint8Array) | undefined
 async function loadImpl(): Promise<(config: GenerateConfig, data: UserInput) => Uint8Array> {
   if (impl) return impl
   try {
-    const mod: unknown = await import('./index.js')
+    const mod: unknown = await import('./pdfImpl.js')
     if (
       typeof mod !== 'object' ||
       mod === null ||
