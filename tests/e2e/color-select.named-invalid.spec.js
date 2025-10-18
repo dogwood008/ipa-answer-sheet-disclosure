@@ -1,30 +1,29 @@
-const puppeteer = require('puppeteer-core')
 const path = require('path')
-const { BASE_URL } = require('./helpers')
+const { BASE_URL, launchBrowser } = require('./helpers')
 
 describe('Color select - named invalid', () => {
   test('invalid name falls back to black', async () => {
-    const execPath = process.env.CHROME_PATH || '/usr/bin/chromium-browser'
-    const browser = await puppeteer.launch({ executablePath: execPath, args:['--no-sandbox','--disable-setuid-sandbox'] })
-    const page = await browser.newPage()
-    await page.goto(BASE_URL)
+    const { page, close } = await launchBrowser()
+    try {
+      await page.goto(BASE_URL)
 
-    await page.click('#drawCircleOn')
-    await page.type('#colorName', 'not-a-color')
-    await page.$eval('#colorName', el => el.dispatchEvent(new Event('change', { bubbles:true })))
+      await page.click('#drawCircleOn')
+      await page.type('#colorName', 'not-a-color')
+      await page.$eval('#colorName', el => el.dispatchEvent(new Event('change', { bubbles:true })))
 
-    const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')
-    await (await page.$('#templateFile')).uploadFile(templatePath)
-    const fontPath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/NotoSansJP-Regular.ttf')
-    await (await page.$('#fontFile')).uploadFile(fontPath)
+      const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')
+      await (await page.$('#templateFile')).uploadFile(templatePath)
+      const fontPath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/NotoSansJP-Regular.ttf')
+      await (await page.$('#fontFile')).uploadFile(fontPath)
 
-    await page.click('#generate')
-    await page.waitForFunction(()=> window.__lastPdfColorRGB && window.__circleDrawn !== undefined, { timeout: 5000 }).catch(()=>{})
-    const color = await page.evaluate(()=> window.__lastPdfColorRGB )
-    expect(color.r).toBeCloseTo(0)
-    expect(color.g).toBeCloseTo(0)
-    expect(color.b).toBeCloseTo(0)
-
-    await browser.close()
+      await page.click('#generate')
+      await page.waitForFunction(()=> window.__lastPdfColorRGB && window.__circleDrawn !== undefined, { timeout: 5000 }).catch(()=>{})
+      const color = await page.evaluate(()=> window.__lastPdfColorRGB )
+      expect(color.r).toBeCloseTo(0)
+      expect(color.g).toBeCloseTo(0)
+      expect(color.b).toBeCloseTo(0)
+    } finally {
+      await close()
+    }
   }, 20000)
 })
