@@ -184,7 +184,12 @@ function renderTextToPngBytes(text: string, fontFamily: string, fontSizePx: numb
   const base64 = dataUrl.split(',')[1]; const binary = atob(base64); const len = binary.length; const buf = new Uint8Array(len); for (let i = 0; i < len; i++) buf[i] = binary.charCodeAt(i)
   return { bytes: buf.buffer, widthPx: width, heightPx: height, ascentPx: Math.round(maxAsc), paddingTop }
 }
-async function embedPngBytesAsPdfImage(targetDoc: any, png: { bytes: ArrayBuffer }) { const pngImage = await targetDoc.embedPng(png.bytes); const widthPts = (pngImage as any).width / PIXELS_PER_POINT; const heightPts = (pngImage as any).height / PIXELS_PER_POINT; return { pngImage, widthPts, heightPts } }
+async function embedPngBytesAsPdfImage(targetDoc: any, png: { bytes: ArrayBuffer }) {
+  const pngImage = await targetDoc.embedPng(png.bytes);
+  const widthPts = (pngImage as any).width / PIXELS_PER_POINT;
+  const heightPts = (pngImage as any).height / PIXELS_PER_POINT;
+  return { pngImage, widthPts, heightPts };
+}
 
 export default function App() {
   const furiganaRef = useRef<HTMLInputElement>(null)
