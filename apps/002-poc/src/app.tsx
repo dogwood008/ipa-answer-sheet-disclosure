@@ -6,8 +6,8 @@ import * as pdfjsLib from 'pdfjs-dist'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  ; (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import notoAssetUrl from '../NotoSansJP-Regular.ttf?url'
@@ -36,9 +36,9 @@ type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
 const fieldMap: Field[] = [
-  { type: 'text', key: 'furigana',  x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
-  { type: 'text', key: 'name',      x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
-  { type: 'text', key: 'examNumber',x: 420, y: 720,             size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
+  { type: 'text', key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
+  { type: 'text', key: 'examNumber', x: 420, y: 720, size: 12, width: 120, maxLines: 1 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -238,7 +238,7 @@ export default function App() {
       if (sw) { sw.style.background = selectedColor; sw.setAttribute('title', selectedColor) }
       if (val) val.textContent = selectedColor
       window.__lastSelectedColorHex = selectedColor
-    } catch {}
+    } catch { }
   }, [selectedColor])
 
   const handlePresetBlack = () => setSelectedColor('#000000')
@@ -249,12 +249,12 @@ export default function App() {
   const handleGenerate = async () => {
     try {
       // Clear previous blob
-      if (downloadHref) { try { URL.revokeObjectURL(downloadHref) } catch {} }
+      if (downloadHref) { try { URL.revokeObjectURL(downloadHref) } catch { } }
 
       const outDoc = await PDFDocument.create()
       // pdf-lib の Fontkit 型は外部パッケージのため型解決が難しいため、この行のみルールを抑制
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-      try { outDoc.registerFontkit(fontkit as any) } catch {}
+      try { outDoc.registerFontkit(fontkit as any) } catch { }
 
       // Template background via PDF.js (if provided)
       let page: PDFPage
@@ -280,17 +280,17 @@ export default function App() {
           const fontBytes = await readFileAsArrayBuffer(fontFile)
           font = await outDoc.embedFont(new Uint8Array(fontBytes))
           window.__embeddedFontEmbedded = true
-          try { uploadedFontFamily = await loadFontFaceFromFile(fontFile) } catch {}
+          try { uploadedFontFamily = await loadFontFaceFromFile(fontFile) } catch { }
         }
-      } catch {}
+      } catch { }
       if (!font) {
         const candidates = [notoAssetUrl, '/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
         for (const path of candidates) {
           try { const res = await fetch(path); if (res && res.ok) { const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); window.__embeddedFontEmbedded = true; window.__embeddedFontName = 'NotoSansJP-Regular.ttf'; break } } catch { }
         }
       }
-      if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch {} }
-      if (!uploadedFontFamily) { try { notoFontFamily = await loadNotoFromGoogleFonts() } catch {} }
+      if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch { } }
+      if (!uploadedFontFamily) { try { notoFontFamily = await loadNotoFromGoogleFonts() } catch { } }
 
       const textInputs = {
         furigana: furiganaRef.current?.value,
@@ -370,7 +370,7 @@ export default function App() {
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setDownloadHref(url)
-      try { if (previewRef.current) previewRef.current.src = url } catch {}
+      try { if (previewRef.current) previewRef.current.src = url } catch { }
     } catch (e) {
       // ignore
     }
@@ -389,15 +389,15 @@ export default function App() {
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
-        <input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle==='draw'} onChange={()=>setDrawCircle('draw')} />
+        <input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle === 'draw'} onChange={() => setDrawCircle('draw')} />
         <label htmlFor="drawCircleOn" style={{ marginRight: 8 }}>描く</label>
-        <input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle==='nodraw'} onChange={()=>setDrawCircle('nodraw')} />
+        <input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle === 'nodraw'} onChange={() => setDrawCircle('nodraw')} />
         <label htmlFor="drawCircleOff">描かない</label>
       </div>
 
       <div id="rectOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>矩形の描画:</span>
-        <input type="checkbox" id="drawRect" checked={drawRect} onChange={(e)=>setDrawRect(e.target.checked)} />
+        <input type="checkbox" id="drawRect" checked={drawRect} onChange={(e) => setDrawRect(e.target.checked)} />
         <label htmlFor="drawRect" style={{ marginRight: 8 }}>描く</label>
         <label htmlFor="rectX" style={{ marginRight: 8 }}>x:</label>
         <input id="rectX" ref={rectXRef} type="number" defaultValue={50} style={{ width: 80, marginRight: 8 }} />
@@ -439,9 +439,9 @@ export default function App() {
         <a id="templateLink" href="https://www.ipa.go.jp/privacy/hjuojm000000f2fl-att/02.pdf" target="_blank" rel="noopener">IPAテンプレートをこのリンクからダウンロード</a>
       </p>
       <label htmlFor="templateFile">またはローカルに保存したテンプレートPDFを選択:</label>
-      <input id="templateFile" type="file" accept="application/pdf" onChange={(e)=> setTemplateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+      <input id="templateFile" type="file" accept="application/pdf" onChange={(e) => setTemplateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
       <label htmlFor="fontFile" style={{ display: 'block', marginTop: 6 }}>フォントファイル（日本語対応：.ttf/.otf）を選択:</label>
-      <input id="fontFile" type="file" accept="font/ttf,font/otf,.ttf,.otf" onChange={(e)=> setFontFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+      <input id="fontFile" type="file" accept="font/ttf,font/otf,.ttf,.otf" onChange={(e) => setFontFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
 
       <h3>プレビュー</h3>
       <iframe id="preview" ref={previewRef} style={{ width: '100%', height: 600, border: '1px solid #ddd' }} title="preview" />
