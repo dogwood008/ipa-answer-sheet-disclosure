@@ -20,7 +20,8 @@
 - 全テスト: `npm test`
 - Unit のみ: `npm run test:unit`
 - E2E のみ: `npm run test:e2e`
- - E2E（ローカル自動・推奨）: `npm run test:e2e:local`
+- E2E（ローカル自動・推奨）: `npm run test:e2e:local`
+- Lint: `npm run lint` / 自動修正: `npm run lint:fix`
 
 ## E2E 実行方法（ローカル）
 1) 静的サーバ起動（別ターミナル可）
@@ -53,7 +54,8 @@
 ## CI（GitHub Actions）
 - ワークフロー: `.github/workflows/e2e.yml`
 - 主要ポイント:
-  - Node 18 / `npm ci`
+  - Node（Active LTS の最新マイナー）/ `npm ci`
+    - Vite 7 の要件により、最低でも Node 20.19+ 以上（現行 LTS 22 系推奨）
   - `tests/e2e/initial.sh` をテスト前に実行（テンプレート PDF 準備）
   - `chromium-browser` を `apt` で導入し、`CHROME_PATH` を `/usr/bin/chromium-browser` に設定
 

@@ -8,15 +8,18 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: openci-runner-beta
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
+      - name: Setup Node (Active LTS)
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # Use latest minor of the active LTS (e.g., 22.x)
+          node-version: 'lts/*'
       - name: Install dependencies
         run: npm ci
+      - name: Install pdf-lib runtime (CI only)
+        run: npm i --no-save pdf-lib @pdf-lib/fontkit
       - name: E2E init assets
         run: tests/e2e/initial.sh
       - name: Install Chromium for puppeteer-core
@@ -25,10 +28,23 @@ jobs:
           sudo apt-get install -y chromium-browser
       - name: Set CHROME_PATH
         run: echo "CHROME_PATH=/usr/bin/chromium-browser" >> $GITHUB_ENV
-      - name: Start static server
+      - name: Run PoC E2E (specs/001)
         run: |
+          set -e
           cd specs/001-a4-pdf-pdf/poc
-          python3 -m http.server 8000 &
-          sleep 1
-      - name: Run E2E
-        run: npm run test:e2e
+          python3 -m http.server 8000 & echo $! > /tmp/server.pid
+          cd -
+          npx jest tests/e2e --runInBand --testPathPattern='^(?!.*002-poc).*'
+          kill $(cat /tmp/server.pid) || true
+      - name: Build 002-poc React app
+        run: npm run build:002
+      - name: Run 002-poc E2E (apps/002-poc/dist)
+        env:
+          PORT: 8000
+        run: |
+          set -e
+          cd apps/002-poc/dist
+          python3 -m http.server 8000 & echo $! > /tmp/server2.pid
+          cd -
+          npx jest tests/e2e/002-poc.*.spec.js --runInBand
+          kill $(cat /tmp/server2.pid) || true
