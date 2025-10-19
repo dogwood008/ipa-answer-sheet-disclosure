@@ -11,10 +11,11 @@ jobs:
     runs-on: openci-runner-beta
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
+      - name: Setup Node (Active LTS)
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # Use latest minor of the active LTS (e.g., 22.x)
+          node-version: 'lts/*'
       - name: Install dependencies
         run: npm ci
       - name: Install pdf-lib runtime (CI only)
