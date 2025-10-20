@@ -58,7 +58,7 @@ function namedToHex(name?: string | null) {
   try {
     if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') return null
     const el = document.createElement('span')
-    try { if ('all' in el.style) (el.style as unknown as { all?: string }).all = 'initial' } catch (e) { console.warn('namedToHex: reset style.all failed', e) }
+    try { if ('all' in el.style) el.style.all = 'initial' } catch (e) { console.warn('namedToHex: reset style.all failed', e) }
     el.style.position = 'fixed'; el.style.left = '-9999px'; el.style.top = '-9999px'
     el.style.visibility = 'hidden'; el.style.display = 'block'; el.style.pointerEvents = 'none'
     el.style.color = key
