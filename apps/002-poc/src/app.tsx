@@ -255,7 +255,7 @@ export default function App() {
       try { outDoc.registerFontkit(fontkit as any) } catch (e) { console.warn('registerFontkit failed', e) }
 
       // Template background via PDF.js (if provided)
-      let page: PDFPage
+      let page: PDFPage | null = null
       if (templateFile) {
         try {
           const bytes = await readFileAsArrayBuffer(templateFile)
