@@ -319,8 +319,25 @@ export default function App() {
           const tryPdfText = (pdffont: PDFFont) => {
             if (f.width) {
               let pt = f.size; const minPt = 6; const maxW = f.width
-              const layout = (p: number) => { const words = String(v).split(/(\s+)/); const lines: string[] = []; let cur = ''; for (const w of words) { const test = cur ? (cur + w) : w; const m = pdffont.widthOfTextAtSize(test, p); if (m <= maxW || cur === '') { cur = test } else { lines.push(cur.trimEnd()); cur = w.trimStart() } } if (cur) lines.push(cur); return lines }
-              let lines = layout(pt); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layout(pt) }
+              // Extracted for readability
+              function layoutTextLines(text: string, pdffont: PDFFont, fontSize: number, maxWidth: number): string[] {
+                const words = String(text).split(/(\s+)/);
+                const lines: string[] = [];
+                let cur = '';
+                for (const w of words) {
+                  const test = cur ? (cur + w) : w;
+                  const m = pdffont.widthOfTextAtSize(test, fontSize);
+                  if (m <= maxWidth || cur === '') {
+                    cur = test;
+                  } else {
+                    lines.push(cur.trimEnd());
+                    cur = w.trimStart();
+                  }
+                }
+                if (cur) lines.push(cur);
+                return lines;
+              }
+              let lines = layoutTextLines(v, pdffont, pt, maxW); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layoutTextLines(v, pdffont, pt, maxW) }
               if (lines.length > (f.maxLines || 1)) { lines = lines.slice(0, f.maxLines || 1); let last = lines[lines.length - 1]; while (pdffont.widthOfTextAtSize(last + '…', pt) > maxW && last.length > 0) { last = last.slice(0, -1) } lines[lines.length - 1] = last + '…' }
               const leading = pt * 1.2
               for (let i = 0; i < lines.length; i++) { page.drawText(lines[i], { x, y: y - i * leading, size: pt, font: pdffont, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) }) }
