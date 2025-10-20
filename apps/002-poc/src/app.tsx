@@ -335,7 +335,11 @@ export default function App() {
                 if (cur) lines.push(cur);
                 return lines;
               }
-              let lines = layoutTextLines(v, pdffont, pt, maxW); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layoutTextLines(v, pdffont, pt, maxW) }
+              let lines = layoutTextLines(v, pdffont, pt, maxW);
+              while (lines.length > (f.maxLines || 1) && pt > minPt) {
+                pt = Math.max(minPt, pt - 1);
+                lines = layoutTextLines(v, pdffont, pt, maxW);
+              }
               if (lines.length > (f.maxLines || 1)) {
                 // Truncate to maxLines
                 lines = lines.slice(0, f.maxLines || 1);
