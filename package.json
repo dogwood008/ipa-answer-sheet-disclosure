@@ -10,6 +10,7 @@
     "gen:pdf": "node scripts/generate-pdf.js",
     "dev:002": "vite --config apps/002-poc/vite.config.ts",
     "build:002": "vite build --config apps/002-poc/vite.config.ts",
+    "build:002:watch": "vite build --config apps/002-poc/vite.config.ts --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
