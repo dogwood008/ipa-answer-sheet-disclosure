@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import * as pdfjsLib from 'pdfjs-dist'
-// Vite worker url for PDF.js
+// Vite worker url for PDF.js (use .mjs in v5+)
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   ; (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -31,7 +31,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
