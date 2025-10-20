@@ -57,7 +57,7 @@ function namedToHex(name?: string | null) {
   try {
     if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') return null
     const el = document.createElement('span')
-    try { if ('all' in el.style) (el.style as unknown as { all?: string }).all = 'initial' } catch { }
+    try { if ('all' in el.style) (el.style as unknown as { all?: string }).all = 'initial' } catch (e) { console.warn('namedToHex: reset style.all failed', e) }
     el.style.position = 'fixed'; el.style.left = '-9999px'; el.style.top = '-9999px'
     el.style.visibility = 'hidden'; el.style.display = 'block'; el.style.pointerEvents = 'none'
     el.style.color = key
@@ -71,7 +71,7 @@ function namedToHex(name?: string | null) {
       const to2 = (n: number) => n.toString(16).padStart(2, '0')
       return ('#' + to2(r) + to2(g) + to2(b)).toUpperCase()
     }
-  } catch { }
+  } catch (e) { console.warn('namedToHex: failed to resolve named color', e) }
   return null
 }
 function normalizeColor(input?: string) {
@@ -103,7 +103,7 @@ async function loadFontFaceFromFile(file: File) {
     await fontFace.load(); document.fonts.add(fontFace)
     URL.revokeObjectURL(blobUrl)
     return family
-  } catch (e) { try { URL.revokeObjectURL(blobUrl) } catch { } throw e }
+  } catch (e) { try { URL.revokeObjectURL(blobUrl) } catch (revokeErr) { console.warn('loadFontFaceFromFile: revokeObjectURL failed', revokeErr) } throw e }
 }
 async function loadNotoFromGoogleFonts() {
   const cssRes = await fetch(NOTO_CSS_URL, { mode: 'cors' })
@@ -238,7 +238,7 @@ export default function App() {
       if (sw) { sw.style.background = selectedColor; sw.setAttribute('title', selectedColor) }
       if (val) val.textContent = selectedColor
       window.__lastSelectedColorHex = selectedColor
-    } catch { }
+    } catch (e) { console.warn('color UI sync failed', e) }
   }, [selectedColor])
 
   const handlePresetBlack = () => setSelectedColor('#000000')
@@ -249,12 +249,12 @@ export default function App() {
   const handleGenerate = async () => {
     try {
       // Clear previous blob
-      if (downloadHref) { try { URL.revokeObjectURL(downloadHref) } catch { } }
+      if (downloadHref) { try { URL.revokeObjectURL(downloadHref) } catch (e) { console.warn('revokeObjectURL(downloadHref) failed', e) } }
 
       const outDoc = await PDFDocument.create()
       // pdf-lib の Fontkit 型は外部パッケージのため型解決が難しいため、この行のみルールを抑制
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-      try { outDoc.registerFontkit(fontkit as any) } catch { }
+      try { outDoc.registerFontkit(fontkit as any) } catch (e) { console.warn('registerFontkit failed', e) }
 
       // Template background via PDF.js (if provided)
       let page: PDFPage
@@ -280,17 +280,17 @@ export default function App() {
           const fontBytes = await readFileAsArrayBuffer(fontFile)
           font = await outDoc.embedFont(new Uint8Array(fontBytes))
           window.__embeddedFontEmbedded = true
-          try { uploadedFontFamily = await loadFontFaceFromFile(fontFile) } catch { }
+          try { uploadedFontFamily = await loadFontFaceFromFile(fontFile) } catch (e) { console.warn('loadFontFaceFromFile failed', e) }
         }
-      } catch { }
+      } catch (e) { console.warn('embed font from file failed', e) }
       if (!font) {
         const candidates = [notoAssetUrl, '/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
         for (const path of candidates) {
-          try { const res = await fetch(path); if (res && res.ok) { const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); window.__embeddedFontEmbedded = true; window.__embeddedFontName = 'NotoSansJP-Regular.ttf'; break } } catch { }
+          try { const res = await fetch(path); if (res && res.ok) { const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); window.__embeddedFontEmbedded = true; window.__embeddedFontName = 'NotoSansJP-Regular.ttf'; break } } catch (e) { console.warn('fallback font fetch/embed failed', e) }
         }
       }
-      if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch { } }
-      if (!uploadedFontFamily) { try { notoFontFamily = await loadNotoFromGoogleFonts() } catch { } }
+      if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch (e) { console.warn('embed StandardFonts.Helvetica failed', e) } }
+      if (!uploadedFontFamily) { try { notoFontFamily = await loadNotoFromGoogleFonts() } catch (e) { console.warn('loadNotoFromGoogleFonts failed', e) } }
 
       const textInputs = {
         furigana: furiganaRef.current?.value,
@@ -318,7 +318,7 @@ export default function App() {
             }
           }
           if (font) {
-            try { tryPdfText(font) } catch { /* fall back to PNG */ }
+            try { tryPdfText(font) } catch (e) { console.warn('draw text via embedded font failed; fallback to PNG', e) }
           } else {
             const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
             const px = Math.round(f.size * PIXELS_PER_POINT)
@@ -330,7 +330,7 @@ export default function App() {
               const topPaddingPts = (png.paddingTop || 0) / PIXELS_PER_POINT
               const topY = y - (ascentPts + topPaddingPts)
               page.drawImage(pngImage, { x, y: topY, width: widthPts, height: heightPts })
-            } catch { }
+            } catch (e) { console.warn('embed/draw PNG text failed', e) }
           }
         } else if (f.type === 'check') {
           try {
@@ -338,7 +338,7 @@ export default function App() {
             const s = Math.max(0.5, f.size / 16)
             page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
             page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
-          } catch { }
+          } catch (e) { console.warn('draw checkmark failed', e) }
         }
       }
 
@@ -348,7 +348,7 @@ export default function App() {
           page.drawCircle({ x: CIRCLE_POS.x, y: CIRCLE_POS.y, size: CIRCLE_POS.r, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
           window.__circleDrawn = true
         } else { window.__circleDrawn = false }
-      } catch { }
+      } catch (e) { console.warn('draw circle failed', e) }
 
       // Rect option
       try {
@@ -359,20 +359,20 @@ export default function App() {
           const rh = rectHRef.current?.value
           const parsed = parseRectInputs(rx, ry, rw, rh)
           if (parsed.valid) {
-            let yBottom = parsed.y; try { const size = page.getSize(); yBottom = size.height - parsed.y - parsed.h } catch { }
+            let yBottom = parsed.y; try { const size = page.getSize(); yBottom = size.height - parsed.y - parsed.h } catch (e) { console.warn('get page size failed', e) }
             page.drawRectangle({ x: parsed.x, y: yBottom, width: parsed.w, height: parsed.h, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
             window.__rectDrawn = true; window.__lastRect = { x: parsed.x, y: yBottom, w: parsed.w, h: parsed.h }
           } else { window.__rectDrawn = false }
         } else { window.__rectDrawn = false }
-      } catch { }
+      } catch (e) { console.warn('draw rectangle failed', e) }
 
       const pdfBytes = await outDoc.save()
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setDownloadHref(url)
-      try { if (previewRef.current) previewRef.current.src = url } catch { }
+      try { if (previewRef.current) previewRef.current.src = url } catch (e) { console.warn('update preview iframe failed', e) }
     } catch (e) {
-      // ignore
+      console.warn('handleGenerate failed', e)
     }
   }
 
