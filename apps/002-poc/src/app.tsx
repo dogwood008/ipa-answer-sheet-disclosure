@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
@@ -40,7 +40,9 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'examNumber', x: 420, y: 720, size: 12, width: 120, maxLines: 1 },
-  // 電話番号（仮配置。同座標。必要に応じ調整）
+  { type: 'text', key: 'tel1', x: 420, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'tel2', x: 460, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'tel3', x: 500, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -216,6 +218,9 @@ export default function App() {
   const furiganaRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const examRef = useRef<HTMLInputElement>(null)
+  const tel1Ref = useRef<HTMLInputElement>(null)
+  const tel2Ref = useRef<HTMLInputElement>(null)
+  const tel3Ref = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
@@ -306,6 +311,9 @@ export default function App() {
         furigana: furiganaRef.current?.value,
         name: nameRef.current?.value,
         examNumber: examRef.current?.value,
+        tel1: tel1Ref.current?.value,
+        tel2: tel2Ref.current?.value,
+        tel3: tel3Ref.current?.value,
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -502,7 +510,12 @@ export default function App() {
       <input id="name" ref={nameRef} defaultValue="山田 太郎" />
       <label htmlFor="examNumber">受験番号</label>
       <input id="examNumber" ref={examRef} defaultValue="12345678" />
-      {/* 電話番号入力欄は一旦リバート */}
+      <label htmlFor="tel1">電話番号1</label>
+      <input id="tel1" ref={tel1Ref} inputMode="numeric" placeholder="例: 090" />
+      <label htmlFor="tel2">電話番号2</label>
+      <input id="tel2" ref={tel2Ref} inputMode="numeric" placeholder="例: 1234" />
+      <label htmlFor="tel3">電話番号3</label>
+      <input id="tel3" ref={tel3Ref} inputMode="numeric" placeholder="例: 5678" />
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
