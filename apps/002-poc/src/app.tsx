@@ -31,7 +31,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
@@ -39,6 +39,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'examNumber', x: 420, y: 720, size: 12, width: 120, maxLines: 1 },
+  // 電話番号（仮配置。同座標。必要に応じ調整）
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -300,7 +301,7 @@ export default function App() {
       if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch (e) { console.warn('embed StandardFonts.Helvetica failed', e) } }
       if (!uploadedFontFamily) { try { notoFontFamily = await loadNotoFromGoogleFonts() } catch (e) { console.warn('loadNotoFromGoogleFonts failed', e) } }
 
-      const textInputs = {
+      const textInputs: Partial<Record<FieldText['key'], string | undefined>> = {
         furigana: furiganaRef.current?.value,
         name: nameRef.current?.value,
         examNumber: examRef.current?.value,
@@ -342,9 +343,13 @@ export default function App() {
               page.drawText(String(v), { x, y, size: f.size, font: pdffont, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) })
             }
           }
-          if (font) {
-            try { tryPdfText(font) } catch (e) { console.warn('draw text via embedded font failed; fallback to PNG', e) }
-          } else {
+          try {
+            if (!font) throw new Error('no-embedded-font')
+            tryPdfText(font)
+          } catch (e) {
+            if (e instanceof Error && e.message !== 'no-embedded-font') {
+              console.warn('draw text via embedded font failed; fallback to PNG', e)
+            }
             const family = uploadedFontFamily || notoFontFamily || 'Noto Sans JP, NotoSansJP, system-ui, sans-serif'
             const px = Math.round(f.size * PIXELS_PER_POINT)
             const maxWidthPx = f.width ? Math.round(f.width * PIXELS_PER_POINT) : null
@@ -411,6 +416,7 @@ export default function App() {
       <input id="name" ref={nameRef} defaultValue="山田 太郎" />
       <label htmlFor="examNumber">受験番号</label>
       <input id="examNumber" ref={examRef} defaultValue="12345678" />
+      {/* 電話番号入力欄は一旦リバート */}
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
