@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
@@ -45,6 +45,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'tel3', x: 500, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
+  { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -225,6 +226,7 @@ export default function App() {
   const tel3Ref = useRef<HTMLInputElement>(null)
   const postalRef = useRef<HTMLInputElement>(null)
   const addressRef = useRef<HTMLInputElement>(null)
+  const personalInfoRef = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
@@ -320,6 +322,7 @@ export default function App() {
         tel3: tel3Ref.current?.value,
         postalCode: postalRef.current?.value,
         address: addressRef.current?.value,
+        personalInfo: personalInfoRef.current?.value,
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -526,6 +529,8 @@ export default function App() {
       <input id="postalCode" ref={postalRef} inputMode="numeric" placeholder="例: 123-4567" defaultValue="123-4567" />
       <label htmlFor="address">住所</label>
       <input id="address" ref={addressRef} placeholder="例: 東京都千代田区丸の内1-1-1 〇〇ビル101号室" defaultValue="東京都千代田区丸の内1-1-1 〇〇ビル101号室" />
+      <label htmlFor="personalInfo">開示を請求する保有個人情報</label>
+      <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジエクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
