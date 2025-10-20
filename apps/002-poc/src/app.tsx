@@ -183,12 +183,9 @@ function renderTextToPngBytes(text: string, fontFamily: string, fontSizePx: numb
   for (const l of lines) {
     const m = ctx.measureText(l)
     if (m.width > maxW) maxW = m.width
-    const asc = Number.isFinite((m as unknown as { actualBoundingBoxAscent?: number }).actualBoundingBoxAscent ?? NaN)
-      ? ((m as unknown as { actualBoundingBoxAscent: number }).actualBoundingBoxAscent)
-      : fontPx * 0.88
-    const desc = Number.isFinite((m as unknown as { actualBoundingBoxDescent?: number }).actualBoundingBoxDescent ?? NaN)
-      ? ((m as unknown as { actualBoundingBoxDescent: number }).actualBoundingBoxDescent)
-      : fontPx * 0.26
+    const metrics = m as unknown as { actualBoundingBoxAscent?: number; actualBoundingBoxDescent?: number };
+    const asc = Number.isFinite(metrics.actualBoundingBoxAscent) ? metrics.actualBoundingBoxAscent! : fontPx * 0.88;
+    const desc = Number.isFinite(metrics.actualBoundingBoxDescent) ? metrics.actualBoundingBoxDescent! : fontPx * 0.26;
     if (asc > maxAsc) maxAsc = asc
     if (desc > maxDesc) maxDesc = desc
   }
