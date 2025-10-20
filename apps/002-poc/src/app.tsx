@@ -83,7 +83,7 @@ function hexToRgb01(hex?: string): RGB01 {
   return { r: parseInt(h.slice(1, 3), 16) / 255, g: parseInt(h.slice(3, 5), 16) / 255, b: parseInt(h.slice(5, 7), 16) / 255 }
 }
 function parseRectInputs(xv: string | number | null | undefined, yv: string | number | null | undefined, wv: string | number | null | undefined, hv: string | number | null | undefined) {
-  const x = Number.parseFloat(xv as unknown as string), y = Number.parseFloat(yv as unknown as string), w = Number.parseFloat(wv as unknown as string), h = Number.parseFloat(hv as unknown as string)
+  const x = Number.parseFloat(String(xv)), y = Number.parseFloat(String(yv)), w = Number.parseFloat(String(wv)), h = Number.parseFloat(String(hv))
   const valid = Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
   return { x, y, w, h, valid }
 }
