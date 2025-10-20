@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
@@ -43,6 +43,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'tel1', x: 420, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'tel2', x: 460, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'tel3', x: 500, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -221,6 +222,7 @@ export default function App() {
   const tel1Ref = useRef<HTMLInputElement>(null)
   const tel2Ref = useRef<HTMLInputElement>(null)
   const tel3Ref = useRef<HTMLInputElement>(null)
+  const postalRef = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
@@ -314,6 +316,7 @@ export default function App() {
         tel1: tel1Ref.current?.value,
         tel2: tel2Ref.current?.value,
         tel3: tel3Ref.current?.value,
+        postalCode: postalRef.current?.value,
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -511,11 +514,13 @@ export default function App() {
       <label htmlFor="examNumber">受験番号</label>
       <input id="examNumber" ref={examRef} defaultValue="12345678" />
       <label htmlFor="tel1">電話番号1</label>
-      <input id="tel1" ref={tel1Ref} inputMode="numeric" placeholder="例: 090" />
+      <input id="tel1" ref={tel1Ref} inputMode="numeric" placeholder="例: 090" defaultValue="090" />
       <label htmlFor="tel2">電話番号2</label>
-      <input id="tel2" ref={tel2Ref} inputMode="numeric" placeholder="例: 1234" />
+      <input id="tel2" ref={tel2Ref} inputMode="numeric" placeholder="例: 1234" defaultValue="1234" />
       <label htmlFor="tel3">電話番号3</label>
-      <input id="tel3" ref={tel3Ref} inputMode="numeric" placeholder="例: 5678" />
+      <input id="tel3" ref={tel3Ref} inputMode="numeric" placeholder="例: 5678" defaultValue="5678" />
+      <label htmlFor="postalCode">郵便番号</label>
+      <input id="postalCode" ref={postalRef} inputMode="numeric" placeholder="例: 123-4567" defaultValue="123-4567" />
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
