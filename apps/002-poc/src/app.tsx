@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck
 
@@ -44,6 +44,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'tel2', x: 460, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'tel3', x: 500, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -223,6 +224,7 @@ export default function App() {
   const tel2Ref = useRef<HTMLInputElement>(null)
   const tel3Ref = useRef<HTMLInputElement>(null)
   const postalRef = useRef<HTMLInputElement>(null)
+  const addressRef = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
@@ -317,6 +319,7 @@ export default function App() {
         tel2: tel2Ref.current?.value,
         tel3: tel3Ref.current?.value,
         postalCode: postalRef.current?.value,
+        address: addressRef.current?.value,
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -521,6 +524,8 @@ export default function App() {
       <input id="tel3" ref={tel3Ref} inputMode="numeric" placeholder="例: 5678" defaultValue="5678" />
       <label htmlFor="postalCode">郵便番号</label>
       <input id="postalCode" ref={postalRef} inputMode="numeric" placeholder="例: 123-4567" defaultValue="123-4567" />
+      <label htmlFor="address">住所</label>
+      <input id="address" ref={addressRef} placeholder="例: 東京都千代田区丸の内1-1-1 〇〇ビル101号室" defaultValue="東京都千代田区丸の内1-1-1 〇〇ビル101号室" />
 
       <div id="circleOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>円の描画:</span>
