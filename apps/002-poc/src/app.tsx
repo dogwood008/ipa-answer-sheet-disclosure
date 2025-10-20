@@ -286,7 +286,18 @@ export default function App() {
       if (!font) {
         const candidates = [notoAssetUrl, '/NotoSansJP-Regular.ttf', 'NotoSansJP-Regular.ttf']
         for (const path of candidates) {
-          try { const res = await fetch(path); if (res && res.ok) { const ab = await res.arrayBuffer(); font = await outDoc.embedFont(new Uint8Array(ab)); window.__embeddedFontEmbedded = true; window.__embeddedFontName = 'NotoSansJP-Regular.ttf'; break } } catch (e) { console.warn('fallback font fetch/embed failed', e) }
+          try {
+            const res = await fetch(path);
+            if (res && res.ok) {
+              const ab = await res.arrayBuffer();
+              font = await outDoc.embedFont(new Uint8Array(ab));
+              window.__embeddedFontEmbedded = true;
+              window.__embeddedFontName = 'NotoSansJP-Regular.ttf';
+              break;
+            }
+          } catch (e) {
+            console.warn('fallback font fetch/embed failed', e);
+          }
         }
       }
       if (!font) { try { font = await outDoc.embedFont(StandardFonts.Helvetica) } catch (e) { console.warn('embed StandardFonts.Helvetica failed', e) } }
