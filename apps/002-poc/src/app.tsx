@@ -336,7 +336,16 @@ export default function App() {
                 return lines;
               }
               let lines = layoutTextLines(v, pdffont, pt, maxW); while (lines.length > (f.maxLines || 1) && pt > minPt) { pt = Math.max(minPt, pt - 1); lines = layoutTextLines(v, pdffont, pt, maxW) }
-              if (lines.length > (f.maxLines || 1)) { lines = lines.slice(0, f.maxLines || 1); let last = lines[lines.length - 1]; while (pdffont.widthOfTextAtSize(last + '…', pt) > maxW && last.length > 0) { last = last.slice(0, -1) } lines[lines.length - 1] = last + '…' }
+              if (lines.length > (f.maxLines || 1)) {
+                // Truncate to maxLines
+                lines = lines.slice(0, f.maxLines || 1);
+                // Truncate last line to fit, then add ellipsis
+                let last = lines[lines.length - 1];
+                while (pdffont.widthOfTextAtSize(last + '…', pt) > maxW && last.length > 0) {
+                  last = last.slice(0, -1);
+                }
+                lines[lines.length - 1] = last + '…';
+              }
               const leading = pt * 1.2
               for (let i = 0; i < lines.length; i++) { page.drawText(lines[i], { x, y: y - i * leading, size: pt, font: pdffont, color: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b) }) }
             } else {
