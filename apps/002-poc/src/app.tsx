@@ -629,7 +629,7 @@ export default function App() {
       <label htmlFor="address">住所</label>
       <input id="address" ref={addressRef} placeholder="例: 東京都千代田区丸の内1-1-1 〇〇ビル101号室" defaultValue="東京都千代田区丸の内1-1-1 〇〇ビル101号室" />
       <label htmlFor="personalInfo">開示を請求する保有個人情報</label>
-      <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジエクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
+      <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジェクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
 
       <fieldset style={{ border: 'none', padding: 0, margin: '8px 0' }}>
         <legend style={{ padding: 0, margin: 0 }}>書類作成年月日</legend>
