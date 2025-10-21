@@ -46,7 +46,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
-  { type: 'circle', key: 'howToDisclose', x: 78, y: HEIGHT_PT - 409, size: 10 },
+  { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -405,7 +405,7 @@ export default function App() {
           } catch (e) { console.warn('draw checkmark failed', e) }
         } else if (f.type === 'circle') {
           try {
-            page.drawCircle({ x: f.x, y: f.y, size: f.size, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
+            page.drawCircle({ x: f.x, y: f.y, size: f.size, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 2 })
             anyCircleDrawn = true
           } catch (e) { console.warn('draw circle failed', e) }
         }
