@@ -43,7 +43,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo' | 'idDocOther'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo' | 'idDocOther' | 'documentDate'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; key: 'who'; x: number; y: number; size: number }
 type FieldCircle = { type: 'circle'; key: 'howToDisclose' | 'fee'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck | FieldCircle
@@ -59,7 +59,9 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
   // 「その他」選択時の自由記述（通常は未描画。idDoc==='other' の時だけ値を与える）
-  { type: 'text', key: 'idDocOther', x: 144, y: HEIGHT_PT - 649, size: 10, maxLines: 1 },
+  { type: 'text', key: 'idDocOther', x: 144, y: HEIGHT_PT - 642, size: 10, maxLines: 1 },
+  // 書類作成年月日（位置は概算。必要に応じて微調整してください）
+  { type: 'text', key: 'documentDate', x: 460, y: HEIGHT_PT - 700, size: 12, width: 120, maxLines: 1 },
   { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
   { type: 'circle', key: 'fee', x: 267, y: HEIGHT_PT - 479, size: 10 },
   { type: 'check', key: 'who', x: 184, y: HEIGHT_PT - 553, size: 16 },
@@ -234,6 +236,28 @@ async function embedPngBytesAsPdfImage(targetDoc: PDFDocument, png: { bytes: Arr
 }
 
 export default function App() {
+  // 和暦（令和/平成/昭和/大正/明治）で現在日付の部品を生成
+  const now = new Date()
+  type EraDef = { kanji: string; start: Date }
+  const ERAS: EraDef[] = [
+    { kanji: '令和', start: new Date(2019, 4, 1) },  // 2019-05-01
+    { kanji: '平成', start: new Date(1989, 0, 8) },  // 1989-01-08
+    { kanji: '昭和', start: new Date(1926, 11, 25) }, // 1926-12-25
+    { kanji: '大正', start: new Date(1912, 6, 30) },  // 1912-07-30
+    { kanji: '明治', start: new Date(1868, 0, 25) },  // 1868-01-25
+  ]
+  const warekiParts = (d: Date) => {
+    for (const era of ERAS) {
+      if (d >= era.start) {
+        const eraYear = d.getFullYear() - era.start.getFullYear() + 1
+        const yearLabel = `${era.kanji}${eraYear === 1 ? '元' : String(eraYear)}`
+        return { yearLabel, month: String(d.getMonth() + 1), day: String(d.getDate()) }
+      }
+    }
+    // フォールバック（西暦表示）
+    return { yearLabel: String(d.getFullYear()), month: String(d.getMonth() + 1), day: String(d.getDate()) }
+  }
+  const today = warekiParts(now)
   const furiganaRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const examRef = useRef<HTMLInputElement>(null)
@@ -243,6 +267,10 @@ export default function App() {
   const postalRef = useRef<HTMLInputElement>(null)
   const addressRef = useRef<HTMLInputElement>(null)
   const personalInfoRef = useRef<HTMLInputElement>(null)
+  // 書類作成年月日（年・月・日を分割）
+  const documentDateYearRef = useRef<HTMLInputElement>(null)
+  const documentDateMonthRef = useRef<HTMLInputElement>(null)
+  const documentDateDayRef = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
@@ -342,6 +370,13 @@ export default function App() {
         address: addressRef.current?.value,
         personalInfo: personalInfoRef.current?.value,
         idDocOther: idDoc === 'other' ? (idDocOther || '') : undefined,
+        documentDate: (() => {
+          const y = documentDateYearRef.current?.value?.trim() || ''
+          const m = documentDateMonthRef.current?.value?.trim() || ''
+          const d = documentDateDayRef.current?.value?.trim() || ''
+          if (!y && !m && !d) return undefined
+          return `${y}年${m}月${d}日`
+        })(),
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -595,6 +630,18 @@ export default function App() {
       <input id="address" ref={addressRef} placeholder="例: 東京都千代田区丸の内1-1-1 〇〇ビル101号室" defaultValue="東京都千代田区丸の内1-1-1 〇〇ビル101号室" />
       <label htmlFor="personalInfo">開示を請求する保有個人情報</label>
       <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジエクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
+
+      <fieldset style={{ border: 'none', padding: 0, margin: '8px 0' }}>
+        <legend style={{ padding: 0, margin: 0 }}>書類作成年月日</legend>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+          <label htmlFor="documentDateYear" style={{ whiteSpace: 'nowrap' }}>年</label>
+          <input id="documentDateYear" ref={documentDateYearRef} defaultValue={today.yearLabel} placeholder="例: 令和7" style={{ width: 120 }} />
+          <label htmlFor="documentDateMonth" style={{ whiteSpace: 'nowrap' }}>月</label>
+          <input id="documentDateMonth" ref={documentDateMonthRef} defaultValue={today.month} placeholder="例: 10" style={{ width: 60 }} />
+          <label htmlFor="documentDateDay" style={{ whiteSpace: 'nowrap' }}>日</label>
+          <input id="documentDateDay" ref={documentDateDayRef} defaultValue={today.day} placeholder="例: 21" style={{ width: 60 }} />
+        </div>
+      </fieldset>
 
       {/* 円の描画は fieldMap に基づき常に出力されます（UI切替なし） */}
 
