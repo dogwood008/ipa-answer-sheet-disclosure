@@ -17,6 +17,18 @@ type RGB01 = { r: number; g: number; b: number }
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 const CSS_DPI = 96, PDF_DPI = 72, PIXELS_PER_POINT = CSS_DPI / PDF_DPI
 const HEIGHT_PT = 842
+// 請求者本人確認書類（Production UI用）: x は固定、y は選択で変動（概算）
+const ID_DOC_FIXED_X = 96 // pt: テンプレート上の同一列の概算X位置
+const ID_DOC_CHECK_SIZE = 12 // pt
+const MARGIN_Y = 3;
+const ID_DOC_Y_MAP: Record<'license' | 'mynumber' | 'residence' | 'juki' | 'health' | 'other', number> = {
+  license: HEIGHT_PT - 581 + MARGIN_Y,
+  mynumber: HEIGHT_PT - 592 + MARGIN_Y,
+  residence: HEIGHT_PT - 602 + MARGIN_Y,
+  juki: HEIGHT_PT - 612 + MARGIN_Y,
+  health: HEIGHT_PT - 624 + MARGIN_Y,
+  other: HEIGHT_PT - 645 + MARGIN_Y,
+}
 
 declare global {
   interface Window {
@@ -31,7 +43,7 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo' | 'idDocOther'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; key: 'who'; x: number; y: number; size: number }
 type FieldCircle = { type: 'circle'; key: 'howToDisclose' | 'fee'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck | FieldCircle
@@ -46,6 +58,8 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
+  // 「その他」選択時の自由記述（通常は未描画。idDoc==='other' の時だけ値を与える）
+  { type: 'text', key: 'idDocOther', x: 144, y: HEIGHT_PT - 649, size: 10, maxLines: 1 },
   { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
   { type: 'circle', key: 'fee', x: 267, y: HEIGHT_PT - 479, size: 10 },
   { type: 'check', key: 'who', x: 184, y: HEIGHT_PT - 553, size: 16 },
@@ -237,6 +251,9 @@ export default function App() {
 
   const [drawRect, setDrawRect] = useState<boolean>(false)
   const [selectedColor, setSelectedColor] = useState<string>('#000000')
+  // 請求者本人確認書類（UI状態）
+  const [idDoc, setIdDoc] = useState<'license' | 'mynumber' | 'residence' | 'juki' | 'health' | 'other'>('license')
+  const [idDocOther, setIdDocOther] = useState<string>('')
   const [templateFile, setTemplateFile] = useState<File | null>(null)
   const [fontFile, setFontFile] = useState<File | null>(null)
   const [downloadHref, setDownloadHref] = useState<string>('')
@@ -324,6 +341,7 @@ export default function App() {
         postalCode: postalRef.current?.value,
         address: addressRef.current?.value,
         personalInfo: personalInfoRef.current?.value,
+        idDocOther: idDoc === 'other' ? (idDocOther || '') : undefined,
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
@@ -411,6 +429,19 @@ export default function App() {
           } catch (e) { console.warn('draw circle failed', e) }
         }
       }
+      // 本人確認書類: x 固定、選択肢に応じて y 座標を切り替えてチェックを描画
+      try {
+        const y = ID_DOC_Y_MAP[idDoc]
+        if (typeof y === 'number') {
+          const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
+          const s = Math.max(0.5, ID_DOC_CHECK_SIZE / 16)
+          const cx = ID_DOC_FIXED_X, cy = y
+          page.drawLine({ start: { x: cx - 3 * s, y: cy + 2 * s }, end: { x: cx + 1 * s, y: cy - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+          page.drawLine({ start: { x: cx + 1 * s, y: cy - 4 * s }, end: { x: cx + 10 * s, y: cy + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+        }
+      } catch (e) { console.warn('draw id-doc check failed', e) }
+
+      // 「その他」自由記述は fieldMap('idDocOther') により描画（idDoc !== 'other' の場合は undefined でスキップ）
       // Expose whether a circle was drawn (for tests)
       try { window.__circleDrawn = anyCircleDrawn } catch (_) { /* no-op */ }
 
@@ -522,6 +553,36 @@ export default function App() {
       <input id="name" ref={nameRef} defaultValue="山田 太郎" />
       <label htmlFor="examNumber">受験番号</label>
       <input id="examNumber" ref={examRef} defaultValue="12345678" />
+
+      <div id="idDocSection" style={{ margin: '8px 0' }}>
+        <label htmlFor="idDocSelect">請求者本人確認書類</label>
+        <select
+          id="idDocSelect"
+          aria-label="請求者本人確認書類"
+          value={idDoc}
+          onChange={(e) => setIdDoc(e.target.value as typeof idDoc)}
+          style={{ display: 'block', marginBottom: 6 }}
+        >
+          <option value="license">運転免許証</option>
+          <option value="mynumber">マイナンバーカード（個人番号カード）</option>
+          <option value="residence">在留カード、特別永住者証明書又はこれらの書類とみなされる外国人登録証明書</option>
+          <option value="juki">住民基本台帳カード（住所記載のあるもの）</option>
+          <option value="health">健康保険被保険者証（令和７年（2025年）12月１日まで請求者本人確認書類として利用できます）又は健康保険の資格確認書</option>
+          <option value="other">その他（自由記述）</option>
+        </select>
+        {idDoc === 'other' && (
+          <div id="idDocOtherWrap" style={{ marginTop: 6 }}>
+            <label htmlFor="idDocOtherText">その他の内容</label>
+            <input
+              id="idDocOtherText"
+              type="text"
+              placeholder="例: ○○の証明書"
+              value={idDocOther}
+              onChange={(e) => setIdDocOther(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
       <label htmlFor="tel1">電話番号1</label>
       <input id="tel1" ref={tel1Ref} inputMode="numeric" placeholder="例: 090" defaultValue="090" />
       <label htmlFor="tel2">電話番号2</label>
