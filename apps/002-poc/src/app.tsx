@@ -61,7 +61,7 @@ const fieldMap: Field[] = [
   // 「その他」選択時の自由記述（通常は未描画。idDoc==='other' の時だけ値を与える）
   { type: 'text', key: 'idDocOther', x: 144, y: HEIGHT_PT - 642, size: 10, maxLines: 1 },
   // 書類作成年月日（位置は概算。必要に応じて微調整してください）
-  { type: 'text', key: 'documentDate', x: 460, y: HEIGHT_PT - 700, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'documentDate', x: 437, y: HEIGHT_PT - 110, size: 12, width: 120, maxLines: 1 },
   { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
   { type: 'circle', key: 'fee', x: 267, y: HEIGHT_PT - 479, size: 10 },
   { type: 'check', key: 'who', x: 184, y: HEIGHT_PT - 553, size: 16 },
@@ -375,7 +375,7 @@ export default function App() {
           const m = documentDateMonthRef.current?.value?.trim() || ''
           const d = documentDateDayRef.current?.value?.trim() || ''
           if (!y && !m && !d) return undefined
-          return `${y}年${m}月${d}日`
+          return `${y} 　${m} 　${d}`
         })(),
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
