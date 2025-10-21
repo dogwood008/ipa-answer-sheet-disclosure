@@ -33,7 +33,7 @@ declare global {
 
 type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
-type FieldCircle = { type: 'circle'; key: 'howToDisclose'; x: number; y: number; size: number }
+type FieldCircle = { type: 'circle'; key: 'howToDisclose' | 'fee'; x: number; y: number; size: number }
 type Field = FieldText | FieldCheck | FieldCircle
 
 const fieldMap: Field[] = [
@@ -47,7 +47,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
   { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
-  { type: 'check', x: 140, y: 660, size: 16 },
+  { type: 'circle', key: 'fee', x: 267, y: HEIGHT_PT - 479, size: 10 },
 ]
 
 const NAMED_COLOR_HEX: Record<string, string> = { black: '#000000', red: '#FF0000', green: '#008000', blue: '#0000FF', white: '#FFFFFF' }
