@@ -7,7 +7,7 @@ describe('Color select - preset red', () => {
     try {
       await page.goto(BASE_URL)
 
-      await page.click('#drawCircleOn')
+      // 円は常に描画（UI選択なし）
       await page.click('#presetRed')
 
       const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')

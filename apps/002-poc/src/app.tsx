@@ -16,7 +16,6 @@ type RGB01 = { r: number; g: number; b: number }
 
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 const CSS_DPI = 96, PDF_DPI = 72, PIXELS_PER_POINT = CSS_DPI / PDF_DPI
-const CIRCLE_POS = { x: 100, y: 680, r: 10 }
 const HEIGHT_PT = 842
 
 declare global {
@@ -34,7 +33,8 @@ declare global {
 
 type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo'; x: number; y: number; size: number; width?: number; maxLines?: number }
 type FieldCheck = { type: 'check'; x: number; y: number; size: number }
-type Field = FieldText | FieldCheck
+type FieldCircle = { type: 'circle'; key: 'howToDisclose'; x: number; y: number; size: number }
+type Field = FieldText | FieldCheck | FieldCircle
 
 const fieldMap: Field[] = [
   { type: 'text', key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
@@ -46,6 +46,7 @@ const fieldMap: Field[] = [
   { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
   { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
   { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
+  { type: 'circle', key: 'howToDisclose', x: 78, y: HEIGHT_PT - 409, size: 10 },
   { type: 'check', x: 140, y: 660, size: 16 },
 ]
 
@@ -233,7 +234,6 @@ export default function App() {
   const rectHRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLIFrameElement>(null)
 
-  const [drawCircle, setDrawCircle] = useState<'draw' | 'nodraw'>('nodraw')
   const [drawRect, setDrawRect] = useState<boolean>(false)
   const [selectedColor, setSelectedColor] = useState<string>('#000000')
   const [templateFile, setTemplateFile] = useState<File | null>(null)
@@ -327,6 +327,9 @@ export default function App() {
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
 
+      // Track circle drawing for E2E visibility
+      let anyCircleDrawn = false
+
       for (const f of fieldMap) {
         if (f.type === 'text') {
           const v = textInputs[f.key]
@@ -400,16 +403,15 @@ export default function App() {
             page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
             page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
           } catch (e) { console.warn('draw checkmark failed', e) }
+        } else if (f.type === 'circle') {
+          try {
+            page.drawCircle({ x: f.x, y: f.y, size: f.size, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
+            anyCircleDrawn = true
+          } catch (e) { console.warn('draw circle failed', e) }
         }
       }
-
-      // Circle option
-      try {
-        if (drawCircle === 'draw') {
-          page.drawCircle({ x: CIRCLE_POS.x, y: CIRCLE_POS.y, size: CIRCLE_POS.r, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
-          window.__circleDrawn = true
-        } else { window.__circleDrawn = false }
-      } catch (e) { console.warn('draw circle failed', e) }
+      // Expose whether a circle was drawn (for tests)
+      try { window.__circleDrawn = anyCircleDrawn } catch (_) { /* no-op */ }
 
       // Rect option
       try {
@@ -532,13 +534,7 @@ export default function App() {
       <label htmlFor="personalInfo">開示を請求する保有個人情報</label>
       <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジエクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
 
-      <div id="circleOptions" style={{ margin: '8px 0' }}>
-        <span style={{ marginRight: 8 }}>円の描画:</span>
-        <input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle === 'draw'} onChange={() => setDrawCircle('draw')} />
-        <label htmlFor="drawCircleOn" style={{ marginRight: 8 }}>描く</label>
-        <input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle === 'nodraw'} onChange={() => setDrawCircle('nodraw')} />
-        <label htmlFor="drawCircleOff">描かない</label>
-      </div>
+      {/* 円の描画は fieldMap に基づき常に出力されます（UI切替なし） */}
 
       <div id="rectOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>矩形の描画:</span>

@@ -7,7 +7,7 @@ describe('Color select - named invalid', () => {
     try {
       await page.goto(BASE_URL)
 
-      await page.click('#drawCircleOn')
+      // 円は常に描画（UI選択なし）
       await page.type('#colorName', 'not-a-color')
       await page.$eval('#colorName', el => el.dispatchEvent(new Event('change', { bubbles:true })))
 

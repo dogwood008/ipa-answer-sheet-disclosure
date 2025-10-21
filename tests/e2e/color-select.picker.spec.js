@@ -7,7 +7,7 @@ describe('Color select - native picker', () => {
     try {
       await page.goto(BASE_URL)
 
-      await page.click('#drawCircleOn')
+      // 円は常に描画（UI選択なし）
       // Set color input value programmatically
       await page.$eval('#colorPicker', el => { el.value = '#0000FF'; el.dispatchEvent(new Event('input', { bubbles:true })) })
 
