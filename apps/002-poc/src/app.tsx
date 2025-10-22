@@ -467,7 +467,7 @@ export default function App() {
       // 本人確認書類: x 固定、選択肢に応じて y 座標を切り替えてチェックを描画
       try {
         const y = ID_DOC_Y_MAP[idDoc]
-        if (typeof y === 'number') {
+        if (y !== undefined && typeof y === 'number') {
           const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
           const s = Math.max(0.5, ID_DOC_CHECK_SIZE / 16)
           const cx = ID_DOC_FIXED_X, cy = y
