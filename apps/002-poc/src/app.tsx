@@ -16,8 +16,19 @@ type RGB01 = { r: number; g: number; b: number }
 
 const NOTO_CSS_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap'
 const CSS_DPI = 96, PDF_DPI = 72, PIXELS_PER_POINT = CSS_DPI / PDF_DPI
-const CIRCLE_POS = { x: 100, y: 680, r: 10 }
 const HEIGHT_PT = 842
+// 請求者本人確認書類（Production UI用）: x は固定、y は選択で変動（概算）
+const ID_DOC_FIXED_X = 96 // pt: テンプレート上の同一列の概算X位置
+const ID_DOC_CHECK_SIZE = 12 // pt
+const MARGIN_Y = 3;
+const ID_DOC_Y_MAP: Record<'license' | 'mynumber' | 'residence' | 'juki' | 'health' | 'other', number> = {
+  license: HEIGHT_PT - 581 + MARGIN_Y,
+  mynumber: HEIGHT_PT - 592 + MARGIN_Y,
+  residence: HEIGHT_PT - 602 + MARGIN_Y,
+  juki: HEIGHT_PT - 612 + MARGIN_Y,
+  health: HEIGHT_PT - 624 + MARGIN_Y,
+  other: HEIGHT_PT - 645 + MARGIN_Y,
+}
 
 declare global {
   interface Window {
@@ -32,16 +43,28 @@ declare global {
   }
 }
 
-type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber'; x: number; y: number; size: number; width?: number; maxLines?: number }
-type FieldCheck = { type: 'check'; x: number; y: number; size: number }
-type Field = FieldText | FieldCheck
+type FieldText = { type: 'text'; key: 'furigana' | 'name' | 'examNumber' | 'tel1' | 'tel2' | 'tel3' | 'postalCode' | 'address' | 'personalInfo' | 'idDocOther' | 'documentDate'; x: number; y: number; size: number; width?: number; maxLines?: number }
+type FieldCheck = { type: 'check'; key: 'who'; x: number; y: number; size: number }
+type FieldCircle = { type: 'circle'; key: 'howToDisclose' | 'fee'; x: number; y: number; size: number }
+type Field = FieldText | FieldCheck | FieldCircle
 
 const fieldMap: Field[] = [
   { type: 'text', key: 'furigana', x: 218, y: HEIGHT_PT - 146, size: 11, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'name', x: 218, y: HEIGHT_PT - 162, size: 14, width: 386 - 146, maxLines: 2 },
   { type: 'text', key: 'examNumber', x: 420, y: 720, size: 12, width: 120, maxLines: 1 },
-  // 電話番号（仮配置。同座標。必要に応じ調整）
-  { type: 'check', x: 140, y: 660, size: 16 },
+  { type: 'text', key: 'tel1', x: 420, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'tel2', x: 460, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'tel3', x: 500, y: HEIGHT_PT - 162, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'postalCode', x: 230, y: HEIGHT_PT - 190, size: 12, width: 120, maxLines: 1 },
+  { type: 'text', key: 'address', x: 300, y: HEIGHT_PT - 190, size: 12, width: 530 - 300, maxLines: 1 },
+  { type: 'text', key: 'personalInfo', x: 75, y: HEIGHT_PT - 293, size: 10, width: 530 - 75, maxLines: 3 },
+  // 「その他」選択時の自由記述（通常は未描画。idDoc==='other' の時だけ値を与える）
+  { type: 'text', key: 'idDocOther', x: 144, y: HEIGHT_PT - 642, size: 10, maxLines: 1 },
+  // 書類作成年月日（位置は概算。必要に応じて微調整してください）
+  { type: 'text', key: 'documentDate', x: 437, y: HEIGHT_PT - 110, size: 12, width: 120, maxLines: 1 },
+  { type: 'circle', key: 'howToDisclose', x: 81, y: HEIGHT_PT - 409, size: 10 },
+  { type: 'circle', key: 'fee', x: 267, y: HEIGHT_PT - 479, size: 10 },
+  { type: 'check', key: 'who', x: 184, y: HEIGHT_PT - 553, size: 16 },
 ]
 
 const NAMED_COLOR_HEX: Record<string, string> = { black: '#000000', red: '#FF0000', green: '#008000', blue: '#0000FF', white: '#FFFFFF' }
@@ -213,18 +236,52 @@ async function embedPngBytesAsPdfImage(targetDoc: PDFDocument, png: { bytes: Arr
 }
 
 export default function App() {
+  // 和暦（令和/平成/昭和/大正/明治）で現在日付の部品を生成
+  const now = new Date()
+  type EraDef = { kanji: string; start: Date }
+  const ERAS: EraDef[] = [
+    { kanji: '令和', start: new Date(2019, 4, 1) },  // 2019-05-01
+    { kanji: '平成', start: new Date(1989, 0, 8) },  // 1989-01-08
+    { kanji: '昭和', start: new Date(1926, 11, 25) }, // 1926-12-25
+    { kanji: '大正', start: new Date(1912, 6, 30) },  // 1912-07-30
+    { kanji: '明治', start: new Date(1868, 0, 25) },  // 1868-01-25
+  ]
+  const warekiParts = (d: Date) => {
+    for (const era of ERAS) {
+      if (d >= era.start) {
+        const eraYear = d.getFullYear() - era.start.getFullYear() + 1
+        const yearLabel = `${era.kanji}${eraYear === 1 ? '元' : String(eraYear)}`
+        return { yearLabel, month: String(d.getMonth() + 1), day: String(d.getDate()) }
+      }
+    }
+    // フォールバック（西暦表示）
+    return { yearLabel: String(d.getFullYear()), month: String(d.getMonth() + 1), day: String(d.getDate()) }
+  }
+  const today = warekiParts(now)
   const furiganaRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const examRef = useRef<HTMLInputElement>(null)
+  const tel1Ref = useRef<HTMLInputElement>(null)
+  const tel2Ref = useRef<HTMLInputElement>(null)
+  const tel3Ref = useRef<HTMLInputElement>(null)
+  const postalRef = useRef<HTMLInputElement>(null)
+  const addressRef = useRef<HTMLInputElement>(null)
+  const personalInfoRef = useRef<HTMLInputElement>(null)
+  // 書類作成年月日（年・月・日を分割）
+  const documentDateYearRef = useRef<HTMLInputElement>(null)
+  const documentDateMonthRef = useRef<HTMLInputElement>(null)
+  const documentDateDayRef = useRef<HTMLInputElement>(null)
   const rectXRef = useRef<HTMLInputElement>(null)
   const rectYRef = useRef<HTMLInputElement>(null)
   const rectWRef = useRef<HTMLInputElement>(null)
   const rectHRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLIFrameElement>(null)
 
-  const [drawCircle, setDrawCircle] = useState<'draw' | 'nodraw'>('nodraw')
   const [drawRect, setDrawRect] = useState<boolean>(false)
   const [selectedColor, setSelectedColor] = useState<string>('#000000')
+  // 請求者本人確認書類（UI状態）
+  const [idDoc, setIdDoc] = useState<'license' | 'mynumber' | 'residence' | 'juki' | 'health' | 'other'>('license')
+  const [idDocOther, setIdDocOther] = useState<string>('')
   const [templateFile, setTemplateFile] = useState<File | null>(null)
   const [fontFile, setFontFile] = useState<File | null>(null)
   const [downloadHref, setDownloadHref] = useState<string>('')
@@ -306,9 +363,26 @@ export default function App() {
         furigana: furiganaRef.current?.value,
         name: nameRef.current?.value,
         examNumber: examRef.current?.value,
+        tel1: tel1Ref.current?.value,
+        tel2: tel2Ref.current?.value,
+        tel3: tel3Ref.current?.value,
+        postalCode: postalRef.current?.value,
+        address: addressRef.current?.value,
+        personalInfo: personalInfoRef.current?.value,
+        idDocOther: idDoc === 'other' ? (idDocOther || '') : undefined,
+        documentDate: (() => {
+          const y = documentDateYearRef.current?.value?.trim() || ''
+          const m = documentDateMonthRef.current?.value?.trim() || ''
+          const d = documentDateDayRef.current?.value?.trim() || ''
+          if (!y && !m && !d) return undefined
+          return `${y} 　${m} 　${d}`
+        })(),
       }
       const selHex = (typeof selectedColor === 'string') ? selectedColor : '#000000'
       const pdfRGB = hexToRgb01(selHex); window.__lastPdfColorRGB = pdfRGB
+
+      // Track circle drawing for E2E visibility
+      let anyCircleDrawn = false
 
       for (const f of fieldMap) {
         if (f.type === 'text') {
@@ -383,16 +457,28 @@ export default function App() {
             page.drawLine({ start: { x: f.x - 3 * s, y: f.y + 2 * s }, end: { x: f.x + 1 * s, y: f.y - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
             page.drawLine({ start: { x: f.x + 1 * s, y: f.y - 4 * s }, end: { x: f.x + 10 * s, y: f.y + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
           } catch (e) { console.warn('draw checkmark failed', e) }
+        } else if (f.type === 'circle') {
+          try {
+            page.drawCircle({ x: f.x, y: f.y, size: f.size, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 2 })
+            anyCircleDrawn = true
+          } catch (e) { console.warn('draw circle failed', e) }
         }
       }
-
-      // Circle option
+      // 本人確認書類: x 固定、選択肢に応じて y 座標を切り替えてチェックを描画
       try {
-        if (drawCircle === 'draw') {
-          page.drawCircle({ x: CIRCLE_POS.x, y: CIRCLE_POS.y, size: CIRCLE_POS.r, borderColor: rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b), borderWidth: 1 })
-          window.__circleDrawn = true
-        } else { window.__circleDrawn = false }
-      } catch (e) { console.warn('draw circle failed', e) }
+        const y = ID_DOC_Y_MAP[idDoc]
+        if (y !== undefined && typeof y === 'number') {
+          const colorV = rgb(pdfRGB.r, pdfRGB.g, pdfRGB.b)
+          const s = Math.max(0.5, ID_DOC_CHECK_SIZE / 16)
+          const cx = ID_DOC_FIXED_X, cy = y
+          page.drawLine({ start: { x: cx - 3 * s, y: cy + 2 * s }, end: { x: cx + 1 * s, y: cy - 4 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+          page.drawLine({ start: { x: cx + 1 * s, y: cy - 4 * s }, end: { x: cx + 10 * s, y: cy + 6 * s }, thickness: Math.max(1, 1.2 * s), color: colorV })
+        }
+      } catch (e) { console.warn('draw id-doc check failed', e) }
+
+      // 「その他」自由記述は fieldMap('idDocOther') により描画（idDoc !== 'other' の場合は undefined でスキップ）
+      // Expose whether a circle was drawn (for tests)
+      try { window.__circleDrawn = anyCircleDrawn } catch (_) { /* no-op */ }
 
       // Rect option
       try {
@@ -502,15 +588,62 @@ export default function App() {
       <input id="name" ref={nameRef} defaultValue="山田 太郎" />
       <label htmlFor="examNumber">受験番号</label>
       <input id="examNumber" ref={examRef} defaultValue="12345678" />
-      {/* 電話番号入力欄は一旦リバート */}
 
-      <div id="circleOptions" style={{ margin: '8px 0' }}>
-        <span style={{ marginRight: 8 }}>円の描画:</span>
-        <input type="radio" name="drawCircle" id="drawCircleOn" value="draw" checked={drawCircle === 'draw'} onChange={() => setDrawCircle('draw')} />
-        <label htmlFor="drawCircleOn" style={{ marginRight: 8 }}>描く</label>
-        <input type="radio" name="drawCircle" id="drawCircleOff" value="nodraw" checked={drawCircle === 'nodraw'} onChange={() => setDrawCircle('nodraw')} />
-        <label htmlFor="drawCircleOff">描かない</label>
+      <div id="idDocSection" style={{ margin: '8px 0' }}>
+        <label htmlFor="idDocSelect">請求者本人確認書類</label>
+        <select
+          id="idDocSelect"
+          aria-label="請求者本人確認書類"
+          value={idDoc}
+          onChange={(e) => setIdDoc(e.target.value as typeof idDoc)}
+          style={{ display: 'block', marginBottom: 6 }}
+        >
+          <option value="license">運転免許証</option>
+          <option value="mynumber">マイナンバーカード（個人番号カード）</option>
+          <option value="residence">在留カード、特別永住者証明書又はこれらの書類とみなされる外国人登録証明書</option>
+          <option value="juki">住民基本台帳カード（住所記載のあるもの）</option>
+          <option value="health">健康保険被保険者証（令和７年（2025年）12月１日まで請求者本人確認書類として利用できます）又は健康保険の資格確認書</option>
+          <option value="other">その他（自由記述）</option>
+        </select>
+        {idDoc === 'other' && (
+          <div id="idDocOtherWrap" style={{ marginTop: 6 }}>
+            <label htmlFor="idDocOtherText">その他の内容</label>
+            <input
+              id="idDocOtherText"
+              type="text"
+              placeholder="例: ○○の証明書"
+              value={idDocOther}
+              onChange={(e) => setIdDocOther(e.target.value)}
+            />
+          </div>
+        )}
       </div>
+      <label htmlFor="tel1">電話番号1</label>
+      <input id="tel1" ref={tel1Ref} inputMode="numeric" placeholder="例: 090" defaultValue="090" />
+      <label htmlFor="tel2">電話番号2</label>
+      <input id="tel2" ref={tel2Ref} inputMode="numeric" placeholder="例: 1234" defaultValue="1234" />
+      <label htmlFor="tel3">電話番号3</label>
+      <input id="tel3" ref={tel3Ref} inputMode="numeric" placeholder="例: 5678" defaultValue="5678" />
+      <label htmlFor="postalCode">郵便番号</label>
+      <input id="postalCode" ref={postalRef} inputMode="numeric" placeholder="例: 123-4567" defaultValue="123-4567" />
+      <label htmlFor="address">住所</label>
+      <input id="address" ref={addressRef} placeholder="例: 東京都千代田区丸の内1-1-1 〇〇ビル101号室" defaultValue="東京都千代田区丸の内1-1-1 〇〇ビル101号室" />
+      <label htmlFor="personalInfo">開示を請求する保有個人情報</label>
+      <input id="personalInfo" ref={personalInfoRef} defaultValue="開示請求者本人の 「令和 6 年度春期情報処理技術者試験 ITストラテジスト試験 午前 II・午後 I・午後 II 答案 (受験番号 ST000-9999)」 及び「令和 6 年度秋期情報処理技術者試験 プロジェクトマネージャ試験 午前 II・午後 I・ 午後 II 答案 (受験番号 PM000-9999)」に記録された本人に係る保有個人情報" />
+
+      <fieldset style={{ border: 'none', padding: 0, margin: '8px 0' }}>
+        <legend style={{ padding: 0, margin: 0 }}>書類作成年月日</legend>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+          <label htmlFor="documentDateYear" style={{ whiteSpace: 'nowrap' }}>年</label>
+          <input id="documentDateYear" ref={documentDateYearRef} defaultValue={today.yearLabel} placeholder="例: 令和7" style={{ width: 120 }} />
+          <label htmlFor="documentDateMonth" style={{ whiteSpace: 'nowrap' }}>月</label>
+          <input id="documentDateMonth" ref={documentDateMonthRef} defaultValue={today.month} placeholder="例: 10" style={{ width: 60 }} />
+          <label htmlFor="documentDateDay" style={{ whiteSpace: 'nowrap' }}>日</label>
+          <input id="documentDateDay" ref={documentDateDayRef} defaultValue={today.day} placeholder="例: 21" style={{ width: 60 }} />
+        </div>
+      </fieldset>
+
+      {/* 円の描画は fieldMap に基づき常に出力されます（UI切替なし） */}
 
       <div id="rectOptions" style={{ margin: '8px 0' }}>
         <span style={{ marginRight: 8 }}>矩形の描画:</span>

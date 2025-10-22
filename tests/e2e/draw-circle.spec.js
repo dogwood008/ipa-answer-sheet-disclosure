@@ -7,8 +7,7 @@ describe('Draw circle option', ()=>{
     try {
       await page.goto(BASE_URL)
 
-      // Select draw option
-      await page.click('#drawCircleOn')
+      // 円は常に描画される仕様に変更（UI選択なし）
 
       // Upload local template and font to avoid network
       const templatePath = path.resolve(__dirname, '../../specs/001-a4-pdf-pdf/poc/in.pdf')

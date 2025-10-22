@@ -7,8 +7,7 @@ describe('Color select - preset black', () => {
     try {
       await page.goto(BASE_URL)
 
-      // choose draw circle and preset black
-      await page.click('#drawCircleOn')
+      // 円は常に描画（UI選択なし）
       await page.click('#presetBlack')
 
       // upload local files to avoid network
